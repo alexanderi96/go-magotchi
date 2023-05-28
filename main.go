@@ -2,71 +2,17 @@ package main
 
 import (
 	"math/rand"
-	"strconv"
-	"strings"
+	"os"
 	"time"
 
 	"github.com/nsf/termbox-go"
 )
 
-const DigestionDuration = 60 * time.Second
-
-type Pet struct {
-	Stage        int
-	Energy       int
-	Hunger       int
-	Age          time.Duration
-	X            int
-	Y            int
-	Frame        int
-	DigestionEnd []time.Time
-	Distance     int
-	TotalFood    int
-	TotalDirt    int
-}
-
-type Food struct {
-	X int
-	Y int
-}
-
-type Dirt struct {
-	X int
-	Y int
-}
-
-var stages = [][]string{
-	{
-		"  __\n (  )\n (__)",
-		"  __\n (  )\n (__)",
-		"  __\n (  )\n (__)",
-	},
-	{
-		"(\\_/)\n(-.-)",
-		"(/_\\)\n(-.-)",
-		"(\\_/)\n(-.-)",
-	},
-	{
-		"(\\(\\\n(-.-)\n(\")(\")",
-		"(/(/ \n(-.-)\n(\")(\")",
-		"(\\(\\\n(-.-)\n(\")(\")",
-	},
-	{
-		"(\\(\\\n(-.-)\no(\")(\")",
-		"(/(/ \n(-.-)\no(\")(\")",
-		"(\\(\\\n(-.-)\no(\")(\")",
-	},
-	{
-		"(\\(\\\n(-_-)\no(\")(\")",
-		"(/(/ \n(-_-)\no(\")(\")",
-		"(\\(\\\n(-_-)\no(\")(\")",
-	},
-	{
-		"(x_x)",
-		"(X_X)",
-		"(x_x)",
-	},
-}
+var (
+	width, height, statsAreaWidth, gameAreaWidth, gameAreaHeight, gameAreaStartX, gameAreaStartY int
+	foods                                                                                        = []Food{}
+	dirts                                                                                        = []Dirt{}
+)
 
 func main() {
 	err := termbox.Init()
@@ -75,136 +21,85 @@ func main() {
 	}
 	defer termbox.Close()
 
-	width, height := termbox.Size()
+	width, height = termbox.Size()
 
-	// Define game area size
-	gameAreaWidth := width - 20 // 20 is the width of the stats area, adjust if needed
+	statsAreaWidth = (width / 5)
+	gameAreaWidth = width - statsAreaWidth
 	if gameAreaWidth < 0 {
 		gameAreaWidth = 0
 	}
-	gameAreaHeight := height
-	gameAreaStartX := 0
-	gameAreaStartY := 0
+	gameAreaHeight = height
+	gameAreaStartX = statsAreaWidth + 1
+	gameAreaStartY = 0
 
-	// Game objects initialization
-	pet := Pet{
+	pet := &Pet{
 		X:            gameAreaStartX + gameAreaWidth/2,
 		Y:            gameAreaStartY + gameAreaHeight/2,
 		Stage:        0,
 		Frame:        0,
 		Age:          0,
 		Energy:       100,
-		Hunger:       0,
+		Hunger:       50,
 		DigestionEnd: []time.Time{},
 		TotalFood:    0,
 		TotalDirt:    0,
 		Distance:     0,
+		Dead:         false,
 	}
 
-	foods := []Food{}
-	dirts := []Dirt{}
+	stats := &Stats{Pet: pet}
 
-	// Tickers
+	eventQueue := make(chan termbox.Event)
+	go func() {
+		for {
+			eventQueue <- termbox.PollEvent()
+		}
+	}()
+
 	gameTicker := time.NewTicker(1 * time.Second)
 	foodTicker := time.NewTicker(10 * time.Second)
 
 	for {
 		select {
+		case ev := <-eventQueue:
+			switch ev.Type {
+			case termbox.EventKey:
+
+				switch ev.Key {
+				case termbox.KeyEsc:
+
+					handlePause()
+				}
+			case termbox.EventResize:
+
+			}
 		case <-gameTicker.C:
 			termbox.Clear(termbox.ColorDefault, termbox.ColorDefault)
 
-			// Pet movement
-			oldX := pet.X
-			oldY := pet.Y
-			// Move the pet if it is not in stage 0 or 5
-			if pet.Stage != 0 && pet.Stage != 5 {
-				pet = movePet(pet, foods, dirts, width, height)
-				pet.Energy--
-			}
-			pet.Distance += abs(pet.X-oldX) + abs(pet.Y-oldY)
-
-			// Pet digestion
-			now := time.Now()
-			i := 0
-			for _, end := range pet.DigestionEnd {
-				if now.Before(end) {
-					pet.DigestionEnd[i] = end
-					i++
-				} else {
-					pet.TotalDirt++
-					dirts = append(dirts, Dirt{
-						X: pet.X + 2,
-						Y: pet.Y + 2,
-					})
-				}
-			}
-			pet.DigestionEnd = pet.DigestionEnd[:i]
-
-			// Pet eating
-			i = 0
-			for _, food := range foods {
-				if pet.X <= food.X && food.X <= pet.X+3 &&
-					pet.Y <= food.Y && food.Y <= pet.Y+3 {
-					pet.DigestionEnd = append(pet.DigestionEnd, now.Add(DigestionDuration))
-					pet.TotalFood++
-				} else {
-					foods[i] = food
-					i++
-				}
-			}
-			foods = foods[:i]
-
-			// Pet aging
-			pet.Age += 1 * time.Second
-			if pet.Age >= time.Hour {
-				pet.Stage = 5
-			} else if pet.Age >= 45*time.Minute {
-				pet.Stage = 4
-			} else if pet.Age >= 30*time.Minute {
-				pet.Stage = 3
-			} else if pet.Age >= 15*time.Minute {
-				pet.Stage = 2
-			} else if pet.Age >= 3*time.Second {
-				pet.Stage = 1
+			if !pet.Dead {
+				pet.AgePet()
 			}
 
-			// Pet animation
-			pet.Frame = (pet.Frame + 1) % 3
+			if pet.Stage != 0 && !pet.Dead {
+				pet.Move(foods, dirts, width, height)
+			}
+			pet.Digest()
 
-			// Print stats
-			stats := []string{
-				"Energy: " + strconv.Itoa(pet.Energy),
-				"Hunger: " + strconv.Itoa(pet.Hunger),
-				"Age: " + strconv.Itoa(int(pet.Age.Seconds())),
-				"Distance: " + strconv.Itoa(pet.Distance),
-				"Total Food: " + strconv.Itoa(pet.TotalFood),
-				"Total Dirt: " + strconv.Itoa(pet.TotalDirt),
-			}
-			for i, stat := range stats {
-				tbprint(0, i, termbox.ColorDefault, termbox.ColorDefault, stat) // Print stats on the left
-			}
-			// Draw separator line between stats and game
-			for i := 0; i < height; i++ {
-				termbox.SetCell(21, i, '|', termbox.ColorWhite, termbox.ColorBlack)
-			}
+			stats.Display()
 
-			// Print the pet
-			petFrame := strings.Split(stages[pet.Stage][pet.Frame], "\n")
-			for y, line := range petFrame {
-				for x, char := range line {
-					tbprint(pet.X+x, pet.Y+y, termbox.ColorDefault, termbox.ColorDefault, string(char))
-				}
-			}
+			pet.Display()
 
-			// Print the food
-			for _, food := range foods {
+			for i, food := range foods {
 				if food.X >= gameAreaStartX && food.X < gameAreaStartX+gameAreaWidth &&
 					food.Y >= gameAreaStartY && food.Y < gameAreaStartY+gameAreaHeight {
 					tbprint(food.X, food.Y, termbox.ColorGreen, termbox.ColorDefault, "*")
 				}
+
+				if food.X == pet.X && food.Y == pet.Y {
+					pet.Eat(i)
+				}
 			}
 
-			// Print the dirt
 			for _, dirt := range dirts {
 				tbprint(dirt.X, dirt.Y, termbox.ColorRed, termbox.ColorDefault, "~")
 			}
@@ -229,86 +124,80 @@ func tbprint(x int, y int, fg termbox.Attribute, bg termbox.Attribute, msg strin
 	}
 }
 
-func movePet(pet Pet, foods []Food, dirts []Dirt, width int, height int) Pet {
-	closestFoodDistance := width * height
-	closestDirtDistance := width * height
-	var closestFood Food
-	var closestDirt Dirt
-
-	for _, food := range foods {
-		distance := abs(pet.X-food.X) + abs(pet.Y-food.Y)
-		if distance < closestFoodDistance {
-			closestFoodDistance = distance
-			closestFood = food
-		}
-	}
-
-	for _, dirt := range dirts {
-		distance := abs(pet.X-dirt.X) + abs(pet.Y-dirt.Y)
-		if distance < closestDirtDistance {
-			closestDirtDistance = distance
-			closestDirt = dirt
-		}
-	}
-
-	if closestFoodDistance < closestDirtDistance {
-		// Move towards the closest food
-		if pet.X < closestFood.X {
-			pet.X++
-		} else if pet.X > closestFood.X {
-			pet.X--
-		}
-		if pet.Y < closestFood.Y {
-			pet.Y++
-		} else if pet.Y > closestFood.Y {
-			pet.Y--
-		}
-	} else {
-		// Move away from the closest dirt
-		if pet.X < closestDirt.X {
-			pet.X--
-		} else if pet.X > closestDirt.X {
-			pet.X++
-		}
-		if pet.Y < closestDirt.Y {
-			pet.Y--
-		} else if pet.Y > closestDirt.Y {
-			pet.Y++
-		}
-	}
-
-	// If the pet can't move away from the closest dirt, move it in a random direction
-	if pet.X == closestDirt.X && pet.Y == closestDirt.Y {
-		switch rand.Intn(4) {
-		case 0:
-			pet.X++
-		case 1:
-			pet.X--
-		case 2:
-			pet.Y++
-		case 3:
-			pet.Y--
-		}
-	}
-
-	// Wrap the pet around the screen if it goes out of bounds
-	if pet.X < 0 {
-		pet.X = width - 1
-	} else if pet.X >= width {
-		pet.X = 0
-	}
-	if pet.Y < 0 {
-		pet.Y = height - 1
-	} else if pet.Y >= height {
-		pet.Y = 0
-	}
-
-	return pet
-}
-
 func abs(n int) int {
 	if n < 0 {
 		return -n
 	}
 	return n
+}
+
+func drawMenu(title string, options []string) {
+	menuWidth := len(title)
+	for _, option := range options {
+		if len(option) > menuWidth {
+			menuWidth = len(option)
+		}
+	}
+	menuWidth += 6
+
+	menuHeight := len(options) + 5
+
+	menuStartX := (width - menuWidth) / 2
+	menuStartY := (height - menuHeight) / 2
+
+	for i := 0; i < menuHeight; i++ {
+		for j := 0; j < menuWidth; j++ {
+			var ch rune
+			switch {
+			case i == 0 && j == 0:
+				ch = '╔'
+			case i == menuHeight-1 && j == 0:
+				ch = '╚'
+			case i == 0 && j == menuWidth-1:
+				ch = '╗'
+			case i == menuHeight-1 && j == menuWidth-1:
+				ch = '╝'
+			case i == 0 || i == menuHeight-1:
+				ch = '═'
+			case j == 0 || j == menuWidth-1:
+				ch = '║'
+			default:
+				ch = ' '
+			}
+			termbox.SetCell(menuStartX+j, menuStartY+i, ch, termbox.ColorWhite, termbox.ColorDefault)
+		}
+	}
+
+	tbprint(menuStartX+1, menuStartY, termbox.ColorWhite, termbox.ColorDefault, title)
+
+	for i, option := range options {
+		tbprint(menuStartX+(menuWidth-len(option))/2, menuStartY+i+3, termbox.ColorWhite, termbox.ColorDefault, option)
+	}
+}
+
+func handlePause() {
+	menuOptions := []string{
+		"1. Resume",
+		"2. Save",
+		"3. Exit",
+	}
+
+	drawMenu("Pause", menuOptions)
+
+	termbox.Flush()
+
+	for {
+		switch ev := termbox.PollEvent(); ev.Type {
+		case termbox.EventKey:
+			switch ev.Ch {
+			case '1':
+				return
+			case '2':
+
+			case '3':
+				termbox.Close()
+				os.Exit(0)
+			}
+		}
+	}
 }
