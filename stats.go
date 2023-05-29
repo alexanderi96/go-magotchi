@@ -13,6 +13,7 @@ type Stats struct {
 func (s *Stats) Display() {
 	maxWidth := statsAreaWidth
 	stats := []string{
+		"Type: " + s.Pet.SpriteName,
 		"Energy: " + strconv.Itoa(s.Pet.Energy),
 		"Hunger: " + strconv.Itoa(s.Pet.Hunger),
 		"Age: " + strconv.Itoa(int(s.Pet.Age.Seconds())),
@@ -22,7 +23,7 @@ func (s *Stats) Display() {
 	}
 	for i, stat := range stats {
 		if len(stat) > maxWidth {
-			stat = stat[:maxWidth-1] + ">"
+			stat = "<" + stat[maxWidth-1:]
 		}
 		tbprint(0, i, termbox.ColorDefault, termbox.ColorDefault, stat)
 	}

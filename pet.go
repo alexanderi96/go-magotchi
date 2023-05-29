@@ -1,6 +1,8 @@
 package main
 
 import (
+	"math"
+	"math/rand"
 	"strings"
 	"time"
 
@@ -10,6 +12,8 @@ import (
 const DigestionDuration = 60 * time.Second
 
 type Pet struct {
+	Sprite       [][]string
+	SpriteName   string
 	Stage        int
 	Energy       int
 	Hunger       int
@@ -22,6 +26,7 @@ type Pet struct {
 	TotalFood    int
 	TotalDirt    int
 	Dead         bool
+	MoveTicker   *time.Ticker
 }
 
 const (
@@ -35,29 +40,164 @@ const (
 	Dead      = "X_X"
 )
 
-var stages = [][]string{
-	{
-		"  __\n (  )\n (__)",
+var stages = map[string][][]string{
+	"Original Bunny": {
+		{
+			"  __\n (  )\n (__)",
+		},
+		{
+			"(\\_/)\n(#)",
+			"(/_\\)\n(#)",
+		},
+		{
+			"(\\(\\\n(#)\n(\")(\")",
+			"(/(/ \n(#)\n(\")(\")",
+		},
+		{
+			"(\\(\\\n(#)\no(\")(\")",
+			"(/(/ \n(#)\no(\")(\")",
+		},
+		{
+			"(\\(\\\n(#)\no(\")(\")",
+			"(/(/ \n(#)\no(\")(\")",
+		},
 	},
-	{
-		"(\\_/)\n(#)",
-		"(/_\\)\n(#)",
+	"Alien Jellyfish": {
+		{
+			"  __\n (  )\n (__)",
+		},
+		{
+			" (___)\n (#)\n (/\\)",
+			"(\\___/)\n (#)\n (\\/)",
+		},
+		{
+			" (___)\n (#)\n (/\\)\n(____)",
+			"(\\___/)\n (#)\n (\\/)\n(____)",
+		},
+		{
+			" (___)\n (#)\no(/\\)\n(____)",
+			"(\\___/)\n (#)\no(\\/)\n(____)",
+		},
+		{
+			" (___)\n (#)\no(/\\)\n(____)\n  oo",
+			"(\\___/)\n (#)\no(\\/)\n(____)\n  oo",
+		},
 	},
-	{
-		"(\\(\\\n(#)\n(\")(\")",
-		"(/(/ \n(#)\n(\")(\")",
+	"Robotic Pup": {
+		{
+			"  __\n (  )\n (__)",
+		},
+		{
+			"(\\_/)\n  #\n ('')",
+			"(/_\\)\n  #\n ('')",
+		},
+		{
+			"(\\_/)\n (#)\n/'..'\\",
+			"(/_\\)\n (#)\n'..\\'",
+		},
+		{
+			"(\\_/)\n (#)\no/'..'\\",
+			"(/_\\)\n (#)\no'..\\'",
+		},
+		{
+			"[\\_/]\n (#)\no/'..'\\",
+			"[/_\\]\n (#)\no'..\\'",
+		},
 	},
-	{
-		"(\\(\\\n(#)\no(\")(\")",
-		"(/(/ \n(#)\no(\")(\")",
+	"Cyborg Kitty": {
+		{
+			"  __\n (  )\n (__)",
+		},
+		{
+			" ^_^ \n  #",
+			" ^_^ \n  #",
+		},
+		{
+			" ^_^ \n  #\n('') ('')",
+			" ^_^ \n  #\n('') ('')",
+		},
+		{
+			" ^_^ \n (#)\no('') ('')",
+			" ^_^ \n (#)\no('') ('')",
+		},
+		{
+			" ^_^ \n [#]\no('') ('')\n  ^^",
+			" ^_^ \n [#]\no('') ('')\n  ^^",
+		},
 	},
-	{
-		"(\\(\\\n(#)\no(\")(\")",
-		"(/(/ \n(#)\no(\")(\")",
+	"Nano Bug": {
+		{
+			"  __\n (  )\n (__)",
+		},
+		{
+			" [__] \n   #  \n  /\\",
+			" [__] \n   #  \n  \\/",
+		},
+		{
+			" [__] \n   #  \n  /\\  \n (  )",
+			" [__] \n   #  \n  \\/  \n (  )",
+		},
+		{
+			" [__] \n  (#)  \no /\\  \n (  )",
+			" [__] \n  (#)  \no \\/  \n (  )",
+		},
+		{
+			" [__] \n  [#]  \no /\\  \n (  )\n  oo",
+			" [__] \n  [#]  \no \\/  \n (  )\n  oo",
+		},
+	},
+	"Astro Dino": {
+		{
+			"  __\n (  )\n (__)",
+		},
+		{
+			"(\\_/)\n  # \n ('')",
+			"(/_\\)\n  # \n ('')",
+		},
+		{
+			"(/_\\)\n (#) \n('')/\\ ",
+			"(\\_/)\n (#) \n('\\')/\\",
+		},
+		{
+			"(/_\\)\n (#) \no('')/\\",
+			"(\\_/)\n (#) \no('\\')/\\",
+		},
+		{
+			"(/_\\)\n [#] \no('')/\\ \n  ^^",
+			"(\\_/)\n [#] \no('\\')/\\ \n  ^^",
+		},
 	},
 }
 
+func GetRandomPet() (string, [][]string) {
+	i := rand.Intn(len(stages))
+	for name, sprite := range stages {
+		if i == 0 {
+			return name, sprite
+		}
+		i--
+	}
+	panic("Unable to get random pet")
+}
+
+func (p *Pet) AdjustMoveSpeed() {
+	minSpeed := 0.5
+	maxSpeed := 2.0
+
+	energyNormalized := float64(p.Energy) / 100.0
+
+	speed := maxSpeed - (energyNormalized * (maxSpeed - minSpeed))
+	speedDuration := time.Duration(int(math.Round(speed*1000))) * time.Millisecond
+
+	if p.MoveTicker != nil {
+		p.MoveTicker.Stop()
+	}
+
+	p.MoveTicker = time.NewTicker(speedDuration)
+}
+
 func (p *Pet) Move(foods []Food, dirts []Dirt, width int, height int) {
+	p.AdjustMoveSpeed()
 	var foodNeeded = p.Energy < 60 || p.Hunger > 30
 	closestFoodDistance := width * height
 
@@ -219,8 +359,12 @@ func (p *Pet) getPetFace() string {
 	}
 }
 
+func (p *Pet) UpdateFrame() {
+	p.Frame = (p.Frame + 1) % len(p.Sprite[p.Stage])
+}
+
 func (p *Pet) Display() {
-	pFrame := strings.Split(stages[p.Stage][p.Frame], "\n")
+	pFrame := strings.Split(p.Sprite[p.Stage][p.Frame], "\n")
 	petFace := p.getPetFace()
 	for y, line := range pFrame {
 		xOffset := 0
@@ -232,8 +376,5 @@ func (p *Pet) Display() {
 				tbprint(p.X+x+xOffset, p.Y+y, termbox.ColorDefault, termbox.ColorDefault, string(char))
 			}
 		}
-	}
-	if !p.Dead {
-		p.Frame = (p.Frame + 1) % len(stages[p.Stage])
 	}
 }
