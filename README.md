@@ -18,7 +18,7 @@ This is a pet simulator program written in Go. The program allows you to interac
 1. Make sure you have Go installed on your machine.
 2. Clone this repository.
 3. Navigate to the project directory.
-4. Run the following command to build and execute the program:
+4. Run the following command to execute the program:
 
 `go run .`
 
