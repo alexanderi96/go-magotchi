@@ -1,11 +1,15 @@
 package main
 
+import rl "github.com/gen2brain/raylib-go/raylib"
+
 type Food struct {
-	X int
-	Y int
+	Texture rl.Texture2D
+	X, Y    float32
+	Eaten   bool
 }
 
 type Dirt struct {
-	X int
-	Y int
+	Texture rl.Texture2D
+	X, Y    float32
+	Eaten   bool
 }

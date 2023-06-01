@@ -1,380 +1,174 @@
 package main
 
 import (
-	"math"
+	"fmt"
 	"math/rand"
-	"strings"
 	"time"
 
-	"github.com/nsf/termbox-go"
+	rl "github.com/gen2brain/raylib-go/raylib"
 )
-
-const DigestionDuration = 60 * time.Second
 
 type Pet struct {
-	Sprite       [][]string
-	SpriteName   string
-	Stage        int
-	Energy       int
-	Hunger       int
-	Age          time.Duration
-	X            int
-	Y            int
-	Frame        int
-	DigestionEnd []time.Time
-	Distance     int
-	TotalFood    int
-	TotalDirt    int
-	Dead         bool
-	MoveTicker   *time.Ticker
+	X, Y            float32
+	Health, Hunger  int
+	Happiness, Age  int
+	FrameIdx        int
+	Textures        []rl.Texture2D
+	FoodNearby      *Food
+	Energy          int
+	CurrentFoodIdx  int
+	Foods           []Food
+	LastFoodSpawned time.Time
+	FlipSprite      bool
 }
 
-const (
-	Normal    = "-_-"
-	Happy     = "^_^"
-	Sad       = "T_T"
-	Angry     = ">_<"
-	Surprised = "0_0"
-	Scared    = "!_!"
-	Hungry    = "O_O"
-	Dead      = "X_X"
-)
-
-var stages = map[string][][]string{
-	"Original Bunny": {
-		{
-			"  __\n (  )\n (__)",
-		},
-		{
-			"(\\_/)\n(#)",
-			"(/_\\)\n(#)",
-		},
-		{
-			"(\\(\\\n(#)\n(\")(\")",
-			"(/(/ \n(#)\n(\")(\")",
-		},
-		{
-			"(\\(\\\n(#)\no(\")(\")",
-			"(/(/ \n(#)\no(\")(\")",
-		},
-		{
-			"(\\(\\\n(#)\no(\")(\")",
-			"(/(/ \n(#)\no(\")(\")",
-		},
-	},
-	"Alien Jellyfish": {
-		{
-			"  __\n (  )\n (__)",
-		},
-		{
-			" (___)\n (#)\n (/\\)",
-			"(\\___/)\n (#)\n (\\/)",
-		},
-		{
-			" (___)\n (#)\n (/\\)\n(____)",
-			"(\\___/)\n (#)\n (\\/)\n(____)",
-		},
-		{
-			" (___)\n (#)\no(/\\)\n(____)",
-			"(\\___/)\n (#)\no(\\/)\n(____)",
-		},
-		{
-			" (___)\n (#)\no(/\\)\n(____)\n  oo",
-			"(\\___/)\n (#)\no(\\/)\n(____)\n  oo",
-		},
-	},
-	"Robotic Pup": {
-		{
-			"  __\n (  )\n (__)",
-		},
-		{
-			"(\\_/)\n  #\n ('')",
-			"(/_\\)\n  #\n ('')",
-		},
-		{
-			"(\\_/)\n (#)\n/'..'\\",
-			"(/_\\)\n (#)\n'..\\'",
-		},
-		{
-			"(\\_/)\n (#)\no/'..'\\",
-			"(/_\\)\n (#)\no'..\\'",
-		},
-		{
-			"[\\_/]\n (#)\no/'..'\\",
-			"[/_\\]\n (#)\no'..\\'",
-		},
-	},
-	"Cyborg Kitty": {
-		{
-			"  __\n (  )\n (__)",
-		},
-		{
-			" ^_^ \n  #",
-			" ^_^ \n  #",
-		},
-		{
-			" ^_^ \n  #\n('') ('')",
-			" ^_^ \n  #\n('') ('')",
-		},
-		{
-			" ^_^ \n (#)\no('') ('')",
-			" ^_^ \n (#)\no('') ('')",
-		},
-		{
-			" ^_^ \n [#]\no('') ('')\n  ^^",
-			" ^_^ \n [#]\no('') ('')\n  ^^",
-		},
-	},
-	"Nano Bug": {
-		{
-			"  __\n (  )\n (__)",
-		},
-		{
-			" [__] \n   #  \n  /\\",
-			" [__] \n   #  \n  \\/",
-		},
-		{
-			" [__] \n   #  \n  /\\  \n (  )",
-			" [__] \n   #  \n  \\/  \n (  )",
-		},
-		{
-			" [__] \n  (#)  \no /\\  \n (  )",
-			" [__] \n  (#)  \no \\/  \n (  )",
-		},
-		{
-			" [__] \n  [#]  \no /\\  \n (  )\n  oo",
-			" [__] \n  [#]  \no \\/  \n (  )\n  oo",
-		},
-	},
-	"Astro Dino": {
-		{
-			"  __\n (  )\n (__)",
-		},
-		{
-			"(\\_/)\n  # \n ('')",
-			"(/_\\)\n  # \n ('')",
-		},
-		{
-			"(/_\\)\n (#) \n('')/\\ ",
-			"(\\_/)\n (#) \n('\\')/\\",
-		},
-		{
-			"(/_\\)\n (#) \no('')/\\",
-			"(\\_/)\n (#) \no('\\')/\\",
-		},
-		{
-			"(/_\\)\n [#] \no('')/\\ \n  ^^",
-			"(\\_/)\n [#] \no('\\')/\\ \n  ^^",
-		},
-	},
-}
-
-func GetRandomPet() (string, [][]string) {
-	i := rand.Intn(len(stages))
-	for name, sprite := range stages {
-		if i == 0 {
-			return name, sprite
+func (p *Pet) MoveUserInput() {
+	moveSpeed := float32(10) // feel free to adjust this value
+	if rl.IsKeyDown(rl.KeyRight) {
+		p.X += moveSpeed
+		if p.X > float32(screenWidth) {
+			p.X = float32(statsAreaWidth)
 		}
-		i--
-	}
-	panic("Unable to get random pet")
-}
-
-func (p *Pet) AdjustMoveSpeed() {
-	minSpeed := 0.5
-	maxSpeed := 2.0
-
-	energyNormalized := float64(p.Energy) / 100.0
-
-	speed := maxSpeed - (energyNormalized * (maxSpeed - minSpeed))
-	speedDuration := time.Duration(int(math.Round(speed*1000))) * time.Millisecond
-
-	if p.MoveTicker != nil {
-		p.MoveTicker.Stop()
+		p.FlipSprite = false
 	}
 
-	p.MoveTicker = time.NewTicker(speedDuration)
-}
+	if rl.IsKeyDown(rl.KeyLeft) {
+		p.X -= moveSpeed
+		if p.X < float32(statsAreaWidth) {
+			p.X = float32(screenWidth)
+		}
+		p.FlipSprite = true
+	}
 
-func (p *Pet) Move(foods []Food, dirts []Dirt, width int, height int) {
-	p.AdjustMoveSpeed()
-	var foodNeeded = p.Energy < 60 || p.Hunger > 30
-	closestFoodDistance := width * height
-
-	var closestFood Food
-
-	oldX := p.X
-	oldY := p.Y
-
-	if foodNeeded {
-		for _, food := range foods {
-			distance := min(abs(p.X-food.X), abs(p.X-food.X-width), abs(p.X-food.X+width)) +
-				min(abs(p.Y-food.Y), abs(p.Y-food.Y-height), abs(p.Y-food.Y+height))
-			if distance < closestFoodDistance {
-				closestFoodDistance = distance
-				closestFood = food
-			}
+	if rl.IsKeyDown(rl.KeyUp) {
+		p.Y -= moveSpeed
+		if p.Y < 0 {
+			p.Y = screenHeight
 		}
 	}
 
-	if !foodNeeded || closestFoodDistance >= width*height/2 {
-
-		maxDistance := 0
-		bestX, bestY := p.X, p.Y
-		for x := 0; x < width; x++ {
-			for y := 0; y < height; y++ {
-				currDistance := 0
-				for _, dirt := range dirts {
-					currDistance += min(abs(x-dirt.X), abs(x-dirt.X-width), abs(x-dirt.X+width)) +
-						min(abs(y-dirt.Y), abs(y-dirt.Y-height), abs(y-dirt.Y+height))
-				}
-				if currDistance > maxDistance {
-					maxDistance = currDistance
-					bestX, bestY = x, y
-				}
-			}
-		}
-		if p.X != bestX {
-			if p.X < bestX {
-				p.X++
-			} else {
-				p.X--
-			}
-		}
-		if p.Y != bestY {
-			if p.Y < bestY {
-				p.Y++
-			} else {
-				p.Y--
-			}
-		}
-	} else {
-
-		if p.X < closestFood.X {
-			p.X++
-		} else if p.X > closestFood.X {
-			p.X--
-		}
-		if p.Y < closestFood.Y {
-			p.Y++
-		} else if p.Y > closestFood.Y {
-			p.Y--
-		}
-	}
-
-	if p.X < 0 {
-		p.X = width - 1
-	} else if p.X >= width {
-		p.X = 0
-	}
-	if p.Y < 0 {
-		p.Y = height - 1
-	} else if p.Y >= height {
-		p.Y = 0
-	}
-
-	if oldX != p.X || oldY != p.Y {
-		distance := min(abs(p.X-oldX), abs(p.X-oldX-width), abs(p.X-oldX+width)) +
-			min(abs(p.Y-oldY), abs(p.Y-oldY-height), abs(p.Y-oldY+height))
-		p.Energy -= distance
-		p.Hunger += distance
-		p.Distance += distance
-	}
-}
-
-func min(args ...int) int {
-	minValue := args[0]
-	for _, v := range args {
-		if v < minValue {
-			minValue = v
-		}
-	}
-	return minValue
-}
-
-func (p *Pet) AgePet() {
-	p.Energy--
-	p.Hunger++
-	p.Age += 1 * time.Second
-	if p.Age >= time.Hour || p.Energy <= 0 {
-		p.Dead = true
-	} else if p.Age >= 45*time.Minute {
-		p.Stage = 4
-	} else if p.Age >= 30*time.Minute {
-		p.Stage = 3
-	} else if p.Age >= 15*time.Minute {
-		p.Stage = 2
-	} else if p.Age >= 3*time.Second {
-		p.Stage = 1
-	}
-}
-
-func (p *Pet) Eat(food int) {
-	if p.Hunger > 40 {
-		foods = append(foods[:food], foods[food+1:]...)
-		p.TotalFood++
-		p.DigestionEnd = append(p.DigestionEnd, time.Now().Add(DigestionDuration))
-		p.Hunger -= 50
-		p.Energy += 30
-	}
-}
-
-func (p *Pet) Digest() {
-	if len(p.DigestionEnd) > 0 {
-
-		if time.Now().After(p.DigestionEnd[0]) {
-			p.DigestionEnd = p.DigestionEnd[1:]
-
-			p.TotalDirt++
-			p.Energy -= 10
-			if p.X > 0 {
-				dirts = append(dirts, Dirt{
-					X: p.X - 1,
-					Y: p.Y,
-				})
-			} else if p.X < width-1 {
-				dirts = append(dirts, Dirt{
-					X: p.X + 1,
-					Y: p.Y,
-				})
-			}
+	if rl.IsKeyDown(rl.KeyDown) {
+		p.Y += moveSpeed
+		if p.Y > screenHeight {
+			p.Y = 0
 		}
 	}
 }
 
-func (p *Pet) getPetFace() string {
-	switch {
-	case p.Dead:
-		return Dead
-	case p.Energy < 50:
-		return Sad
-	case p.Energy <= 10:
-		return Scared
-	case p.Hunger > 50:
-		return Hungry
-	case p.Hunger < 70 && p.Energy > 50:
-		return Happy
-	default:
-		return Normal
+func (p *Pet) Update() {
+	// La logica di aggiornamento va qui
+}
+
+func (p *Pet) Draw() {
+	rl.BeginDrawing()
+
+	rl.ClearBackground(rl.RayWhite)
+
+	// Draw areas
+	rl.DrawRectangle(0, 0, statsAreaWidth, screenHeight, rl.LightGray)         // Stats area
+	rl.DrawRectangle(statsAreaWidth, 0, gameAreaWidth, screenHeight, rl.White) // Game area
+
+	// Draw the pet in the center of the game area
+	scale := float32(p.Age) // Scale the image by the age of the pet
+	textureWidth := float32(p.Textures[p.FrameIdx].Width)
+	textureHeight := float32(p.Textures[p.FrameIdx].Height)
+
+	// Create the source rectangle for the texture
+	sourceRec := rl.NewRectangle(0, 0, textureWidth, textureHeight)
+	if p.FlipSprite {
+		sourceRec.Width *= -1
+	}
+
+	// Create the destination rectangle for the texture
+	destRec := rl.NewRectangle(p.X-textureWidth*scale/2, p.Y-textureHeight*scale/2, textureWidth*scale, textureHeight*scale)
+
+	// Create the origin vector for the texture
+	origin := rl.NewVector2(0, 0)
+
+	// Draw the texture
+	rl.DrawTexturePro(p.Textures[p.FrameIdx], sourceRec, destRec, origin, 0, rl.White)
+
+	// Draw the pet's stats in the stats area
+	statsY := int32(3)      // Start drawing stats 10 pixels from the top
+	lineHeight := int32(15) // Each line of text is 30 pixels high
+	rl.DrawText(fmt.Sprintf("Health: %d", p.Health), 3, statsY, 15, rl.Black)
+	rl.DrawText(fmt.Sprintf("Hunger: %d", p.Hunger), 3, statsY+lineHeight, 15, rl.Black)
+	rl.DrawText(fmt.Sprintf("Happiness: %d", p.Happiness), 3, statsY+2*lineHeight, 15, rl.Black)
+	rl.DrawText(fmt.Sprintf("Energy: %d", p.Energy), 3, statsY+3*lineHeight, 15, rl.Black)
+	rl.DrawText(fmt.Sprintf("Age: %d", p.Age), 3, statsY+4*lineHeight, 15, rl.Black)
+
+	p.FrameIdx = (p.FrameIdx + 1) % len(p.Textures) // Advance to the next frame
+
+	rl.EndDrawing()
+}
+
+func (p *Pet) SpawnFood(foodTexture rl.Texture2D) {
+	if len(p.Foods) < maxFood && time.Since(p.LastFoodSpawned).Seconds() > foodSpawnInterval {
+		newFood := Food{
+			X:       float32(int(statsAreaWidth) + rand.Intn(int(gameAreaWidth-foodSize))),
+			Y:       float32(rand.Intn(screenHeight - foodSize)),
+			Eaten:   false,
+			Texture: foodTexture,
+		}
+		p.Foods = append(p.Foods, newFood)
+		p.LastFoodSpawned = time.Now()
 	}
 }
 
-func (p *Pet) UpdateFrame() {
-	p.Frame = (p.Frame + 1) % len(p.Sprite[p.Stage])
+func (p *Pet) MoveToFood() {
+	if len(p.Foods) == 0 {
+		return
+	}
+
+	// Get the closest food
+	closestFoodIdx := 0
+	closestDistance := float32(gameAreaWidth + screenHeight) // A value greater than the maximum possible distance
+
+	for idx, food := range p.Foods {
+		if food.Eaten {
+			continue
+		}
+
+		distance := rl.Vector2Distance(rl.NewVector2(p.X, p.Y), rl.NewVector2(food.X, food.Y))
+		if distance < closestDistance {
+			closestFoodIdx = idx
+			closestDistance = distance
+		}
+	}
+
+	// Move to closest food
+	food := &p.Foods[closestFoodIdx]
+	if p.X < food.X {
+		p.X++
+		p.FlipSprite = false
+	} else if p.X > food.X {
+		p.X--
+		p.FlipSprite = true
+	}
+
+	if p.Y < food.Y {
+		p.Y++
+	} else if p.Y > food.Y {
+		p.Y--
+	}
+
+	// Check if the pet has reached the food
+	if rl.Vector2Distance(rl.NewVector2(p.X, p.Y), rl.NewVector2(food.X, food.Y)) < foodSize {
+		food.Eaten = true
+		p.Health += 10
+	}
 }
 
-func (p *Pet) Display() {
-	pFrame := strings.Split(p.Sprite[p.Stage][p.Frame], "\n")
-	petFace := p.getPetFace()
-	for y, line := range pFrame {
-		xOffset := 0
-		for x, char := range line {
-			if char == '#' {
-				tbprint(p.X+x, p.Y+y, termbox.ColorDefault, termbox.ColorDefault, petFace)
-				xOffset = len(petFace) - 1
-			} else {
-				tbprint(p.X+x+xOffset, p.Y+y, termbox.ColorDefault, termbox.ColorDefault, string(char))
-			}
+func (p *Pet) DrawFoods() {
+	for _, food := range p.Foods {
+		if !food.Eaten {
+			textureWidth := float32(food.Texture.Width)
+			textureHeight := float32(food.Texture.Height)
+			scale := float32(foodSize) / textureWidth
+			x := food.X - (textureWidth*scale)/2
+			y := food.Y - (textureHeight*scale)/2
+
+			rl.DrawTextureEx(food.Texture, rl.NewVector2(x, y), 0, scale, rl.White)
 		}
 	}
 }

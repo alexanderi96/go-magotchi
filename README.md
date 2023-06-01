@@ -4,13 +4,13 @@ This is a pet simulator program written in Go. The program allows you to interac
 
 ## Features
 
-- [x] Monitor the pet's energy and hunger levels.
+- [ ] Monitor the pet's energy and hunger levels.
 - [x] Feed the pet and watch it consume food.
 - [ ] Clean up the pet's dirt.
-- [x] Observe the pet's age and stage of development.
+- [ ] Observe the pet's age and stage of development.
 - [ ] Interact with the pet using keyboard controls.
 - [ ] Pause, restart, save, and load the game.
-- [x] Receive a game summary when the pet dies.
+- [ ] Receive a game summary when the pet dies.
 - [ ] Multiplayer.
 
 ## How to Run
@@ -30,7 +30,7 @@ This is a pet simulator program written in Go. The program allows you to interac
 
 This program uses the following external Go package:
 
-- [termbox-go](https://github.com/nsf/termbox-go): A library for creating simple terminal-based user interfaces.
+- [raylib-go](https://github.com/gen2brain/raylib-go): Go bindings for raylib, a simple and easy-to-use library to enjoy videogames programming.
 
 ## License
 
