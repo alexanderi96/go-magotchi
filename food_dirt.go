@@ -6,6 +6,17 @@ import (
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
+const (
+	MaxFoodEnergy = 20
+	MinFoodEnergy = 10
+	foodSize      = 10
+)
+
+var (
+	foodTicker  *time.Ticker
+	foodTexture rl.Texture2D
+)
+
 type Food struct {
 	Texture   rl.Texture2D
 	X, Y      float32
@@ -17,10 +28,9 @@ type Food struct {
 type Dirt struct {
 	Texture rl.Texture2D
 	X, Y    float32
-	Eaten   bool
 }
 
-func (f *Food) DrawFoods() {
+func (f *Food) Draw() {
 	if !f.Eaten {
 
 		textureWidth := float32(foodTexture.Width)
@@ -31,4 +41,8 @@ func (f *Food) DrawFoods() {
 
 		rl.DrawTextureEx(foodTexture, rl.Vector2{X: x, Y: y}, 0, scale, rl.White)
 	}
+}
+
+func (f *Dirt) Draw() {
+	// TODO
 }

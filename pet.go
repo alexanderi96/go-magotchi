@@ -1,8 +1,6 @@
 package main
 
 import (
-	"fmt"
-
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
@@ -12,16 +10,17 @@ type TextureSet struct {
 }
 
 type Pet struct {
-	X, Y                                             float32
-	Health, Hunger, Happiness, Age, Energy, FrameIdx int
-	Textures                                         TextureSet
-	FlipSprite, Moving                               bool
+	X, Y                                        float32
+	Health, Hunger, Happiness, Energy, FrameIdx int
+	Textures                                    TextureSet
+	FlipSprite, Moving                          bool
+	Age                                         int
 }
 
 var selectedTextures []rl.Texture2D
 
 func (p *Pet) MoveUserInput() {
-	moveSpeed := float32(10) // feel free to adjust this value
+	moveSpeed := float32(10)
 
 	oldX := p.X
 	oldY := p.Y
@@ -29,16 +28,16 @@ func (p *Pet) MoveUserInput() {
 
 	if rl.IsKeyDown(rl.KeyRight) {
 		p.X += moveSpeed
-		if p.X > float32(screenWidth) {
-			p.X = float32(statsAreaWidth)
+		if p.X > float32(world.WorldWidth) {
+			p.X = float32(0)
 		}
 		p.FlipSprite = false
 	}
 
 	if rl.IsKeyDown(rl.KeyLeft) {
 		p.X -= moveSpeed
-		if p.X < float32(statsAreaWidth) {
-			p.X = float32(screenWidth)
+		if p.X < float32(0) {
+			p.X = float32(world.WorldWidth)
 		}
 		p.FlipSprite = true
 	}
@@ -46,13 +45,13 @@ func (p *Pet) MoveUserInput() {
 	if rl.IsKeyDown(rl.KeyUp) {
 		p.Y -= moveSpeed
 		if p.Y < 0 {
-			p.Y = screenHeight
+			p.Y = float32(world.WorldHeight)
 		}
 	}
 
 	if rl.IsKeyDown(rl.KeyDown) {
 		p.Y += moveSpeed
-		if p.Y > screenHeight {
+		if p.Y > float32(world.WorldHeight) {
 			p.Y = 0
 		}
 	}
@@ -65,15 +64,23 @@ func (p *Pet) MoveUserInput() {
 
 func (p *Pet) Draw() {
 	// Draw areas
-	rl.DrawRectangle(0, 0, statsAreaWidth, screenHeight, rl.LightGray)         // Stats area
-	rl.DrawRectangle(statsAreaWidth, 0, gameAreaWidth, screenHeight, rl.White) // Game area
 
 	if selectedTextures == nil {
 		selectedTextures = p.Textures.IdleTextures
 	}
 
 	// Draw the pet in the center of the game area
-	scale := float32(p.Age) // Scale the image by the age of the pet
+	scale := float32(1)    // Scala iniziale
+	maxScale := float32(3) // Dimensione massima
+	maxAge := float32(60)  // Età massima per raggiungere la dimensione massima
+
+	if p.Age <= int(maxAge) {
+		// Calcola la scala in base all'età
+		scale = 1 + ((maxScale - 1) * (float32(p.Age) / maxAge))
+	} else {
+		scale = maxScale // Mantieni la scala al massimo dopo maxAge
+	}
+
 	textureWidth := float32(selectedTextures[p.FrameIdx].Width)
 	textureHeight := float32(selectedTextures[p.FrameIdx].Height)
 
@@ -88,16 +95,6 @@ func (p *Pet) Draw() {
 
 	// Draw the texture
 	rl.DrawTexturePro(selectedTextures[p.FrameIdx], sourceRec, destRec, rl.NewVector2(0, 0), 0, rl.White)
-
-	// Draw the pet's stats in the stats area
-	statsY := int32(3)      // Start drawing stats 10 pixels from the top
-	lineHeight := int32(15) // Each line of text is 30 pixels high
-	rl.DrawText(fmt.Sprintf("Health: %d", p.Health), 3, statsY, 15, rl.Black)
-	rl.DrawText(fmt.Sprintf("Hunger: %d", p.Hunger), 3, statsY+lineHeight, 15, rl.Black)
-	rl.DrawText(fmt.Sprintf("Happiness: %d", p.Happiness), 3, statsY+2*lineHeight, 15, rl.Black)
-	rl.DrawText(fmt.Sprintf("Energy: %d", p.Energy), 3, statsY+3*lineHeight, 15, rl.Black)
-	rl.DrawText(fmt.Sprintf("Age: %d", p.Age), 3, statsY+4*lineHeight, 15, rl.Black)
-
 }
 
 func (p *Pet) MoveToFood() {
@@ -115,7 +112,7 @@ func (p *Pet) MoveToFood() {
 
 	// Get the closest food
 	closestFoodIdx := 0
-	closestDistance := float32(gameAreaWidth + screenHeight) // A value greater than the maximum possible distance
+	closestDistance := float32(world.WorldWidth + world.WorldHeight) // A value greater than the maximum possible distance
 
 	for idx, food := range world.Foods {
 		if food.Eaten {
@@ -133,16 +130,20 @@ func (p *Pet) MoveToFood() {
 	food := world.Foods[closestFoodIdx]
 	if p.X < food.X {
 		p.X++
+		p.Energy--
 		p.FlipSprite = false
 	} else if p.X > food.X {
 		p.X--
+		p.Energy--
 		p.FlipSprite = true
 	}
 
 	if p.Y < food.Y {
 		p.Y++
+		p.Energy--
 	} else if p.Y > food.Y {
 		p.Y--
+		p.Energy--
 	}
 
 	p.Moving = oldX != p.X || oldY != p.Y
@@ -153,7 +154,8 @@ func (p *Pet) MoveToFood() {
 	// Check if the pet has reached the food
 	if rl.Vector2Distance(rl.NewVector2(p.X, p.Y), rl.NewVector2(food.X, food.Y)) < foodSize {
 		food.Eaten = true
-		p.Health += food.Energy
+		world.Foods = append(world.Foods[:closestFoodIdx], world.Foods[closestFoodIdx+1:]...)
+		p.Energy += food.Energy
 	}
 }
 
@@ -169,4 +171,8 @@ func (p *Pet) Animate() {
 
 	p.FrameIdx = (p.FrameIdx + 1) % len(selectedTextures) // Advance to the next frame
 
+}
+
+func (p *Pet) GetOlder() {
+	p.Age++
 }

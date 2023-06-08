@@ -8,10 +8,12 @@ This is a pet simulator program written in Go. The program allows you to interac
 - [x] Feed the pet and watch it consume food.
 - [ ] Clean up the pet's dirt.
 - [ ] Observe the pet's age and stage of development.
-- [ ] Interact with the pet using keyboard controls.
+- [x] Interact with the pet using keyboard controls.
 - [ ] Pause, restart, save, and load the game.
 - [ ] Receive a game summary when the pet dies.
 - [ ] Multiplayer.
+- [ ] Minigames.
+- [ ] In game currency in order to buy stuff.
 
 ## How to Run
 

@@ -2,43 +2,21 @@ package main
 
 import (
 	"fmt"
-	"math/rand"
 	"time"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
-type World struct {
-	Foods []*Food
-	Dirts []*Dirt
-	Pet   *Pet
-}
-
-func (w *World) SpawnFood() {
-	newFood := Food{
-		X:         float32(int(statsAreaWidth) + rand.Intn(int(gameAreaWidth-foodSize))),
-		Y:         float32(rand.Intn(screenHeight - foodSize)),
-		Eaten:     false,
-		Texture:   foodTexture,
-		SpawnTime: time.Now(),
-		Energy:    rand.Intn(20),
-	}
-	w.Foods = append(w.Foods, &newFood)
-}
-
 const (
 	screenWidth       = 400
 	screenHeight      = 240
 	foodSpawnInterval = 10
-	maxFood           = 10
-	foodSize          = 10
 )
 
 var (
-	statsAreaWidth = int32(float32(screenWidth) * 1 / 4)
-	gameAreaWidth  = int32(screenWidth) - statsAreaWidth
-	foodTexture    rl.Texture2D
-	world          *World
+	world           *World
+	animationTicker *time.Ticker
+	timeTicker      *time.Ticker
 )
 
 func main() {
@@ -48,15 +26,23 @@ func main() {
 		Foods: []*Food{},
 		Dirts: []*Dirt{},
 		Pet: &Pet{
-			X:         float32(gameAreaWidth / 2),
+			X:         float32(screenWidth / 2),
 			Y:         float32(screenHeight / 2),
 			Health:    100,
-			Hunger:    0,
+			Hunger:    50,
 			Happiness: 50,
-			Energy:    50,
-			Age:       3,
+			Energy:    100,
+			Age:       0,
 			FrameIdx:  0,
-		}}
+		},
+		WorldWidth:  screenWidth / 10,
+		WorldHeight: screenHeight / 10,
+	}
+
+	world.WorldGrid = make([][]Cell, world.WorldHeight)
+	for i := range world.WorldGrid {
+		world.WorldGrid[i] = make([]Cell, world.WorldWidth)
+	}
 
 	for i := 1; i <= 5; i++ {
 		//https://elthen.itch.io/2d-pixel-art-fox-sprites
@@ -72,9 +58,17 @@ func main() {
 
 	// https://lucapixel.itch.io/free-food-pixel-art-45-icons
 	foodTexture = rl.LoadTexture("asset/food/food.png")
-	if foodTexture.ID == 0 {
-		fmt.Println("Errore durante il caricamento della texture del cibo")
-	}
+
+	// https://www.flaticon.com/free-icon/pharmacy_2695914
+	healthIcon = rl.LoadTexture("asset/hud/health.png")
+	// https://www.flaticon.com/free-icon/hunger_4968451
+	hungerIcon = rl.LoadTexture("asset/hud/hunger.png")
+	// https://www.flaticon.com/free-icon/happy_1023758
+	happinessIcon = rl.LoadTexture("asset/hud/happiness.png")
+	// https://www.flaticon.com/free-icon/flash_2511629
+	energyIcon = rl.LoadTexture("asset/hud/energy.png")
+	// https://www.flaticon.com/free-icon/time_3240587
+	ageIcon = rl.LoadTexture("asset/hud/age.png")
 
 	gameLoop()
 
@@ -86,43 +80,28 @@ func main() {
 	}
 	rl.UnloadTexture(foodTexture)
 
+	rl.UnloadTexture(healthIcon)
+	rl.UnloadTexture(hungerIcon)
+	rl.UnloadTexture(happinessIcon)
+	rl.UnloadTexture(energyIcon)
+	rl.UnloadTexture(ageIcon)
+
 	rl.CloseWindow()
 }
 
 func gameLoop() {
 	rl.SetTargetFPS(30)
 
-	foodTicker := time.NewTicker(10 * time.Second)
-	animationTicker := time.NewTicker(150 * time.Millisecond)
+	foodTicker = time.NewTicker(10 * time.Second)
+	animationTicker = time.NewTicker(150 * time.Millisecond)
+	timeTicker = time.NewTicker(time.Second)
 
 	for !rl.WindowShouldClose() {
 
-		select {
-		case <-foodTicker.C:
-			world.SpawnFood()
-		case <-animationTicker.C:
-			world.Pet.Animate()
-		default:
-		}
+		world.Update()
 
-		rl.BeginDrawing()
-		rl.ClearBackground(rl.RayWhite)
-		// world.SpawnFood()
+		world.Draw()
 
-		world.Pet.Draw()
-
-		for i, food := range world.Foods {
-			if food.Eaten {
-				world.Foods = append(world.Foods[:i], world.Foods[i+1:]...)
-			}
-
-			food.DrawFoods()
-		}
-
-		world.Pet.MoveToFood()
-		//world.Pet.MoveUserInput()
-
-		rl.EndDrawing()
 	}
 
 	rl.CloseWindow()
