@@ -63,37 +63,32 @@ func (p *Pet) MoveUserInput() {
 }
 
 func (p *Pet) Draw() {
-	// Draw areas
 
 	if selectedTextures == nil {
 		selectedTextures = p.Textures.IdleTextures
 	}
 
-	// Draw the pet in the center of the game area
-	scale := float32(1)    // Scala iniziale
-	maxScale := float32(3) // Dimensione massima
-	maxAge := float32(60)  // Età massima per raggiungere la dimensione massima
+	scale := float32(1)
+	maxScale := float32(3)
+	maxAge := float32(60)
 
 	if p.Age <= int(maxAge) {
-		// Calcola la scala in base all'età
+
 		scale = 1 + ((maxScale - 1) * (float32(p.Age) / maxAge))
 	} else {
-		scale = maxScale // Mantieni la scala al massimo dopo maxAge
+		scale = maxScale
 	}
 
 	textureWidth := float32(selectedTextures[p.FrameIdx].Width)
 	textureHeight := float32(selectedTextures[p.FrameIdx].Height)
 
-	// Create the source rectangle for the texture
 	sourceRec := rl.NewRectangle(0, 0, textureWidth, textureHeight)
 	if p.FlipSprite {
 		sourceRec.Width *= -1
 	}
 
-	// Create the destination rectangle for the texture
 	destRec := rl.NewRectangle(p.X-textureWidth*scale/2, p.Y-textureHeight*scale/2, textureWidth*scale, textureHeight*scale)
 
-	// Draw the texture
 	rl.DrawTexturePro(selectedTextures[p.FrameIdx], sourceRec, destRec, rl.NewVector2(0, 0), 0, rl.White)
 }
 
@@ -110,9 +105,8 @@ func (p *Pet) MoveToFood() {
 		return
 	}
 
-	// Get the closest food
 	closestFoodIdx := 0
-	closestDistance := float32(world.WorldWidth + world.WorldHeight) // A value greater than the maximum possible distance
+	closestDistance := float32(world.WorldWidth + world.WorldHeight)
 
 	for idx, food := range world.Foods {
 		if food.Eaten {
@@ -126,7 +120,6 @@ func (p *Pet) MoveToFood() {
 		}
 	}
 
-	// Move to closest food
 	food := world.Foods[closestFoodIdx]
 	if p.X < food.X {
 		p.X++
@@ -151,7 +144,6 @@ func (p *Pet) MoveToFood() {
 		p.FrameIdx = 0
 	}
 
-	// Check if the pet has reached the food
 	if rl.Vector2Distance(rl.NewVector2(p.X, p.Y), rl.NewVector2(food.X, food.Y)) < foodSize {
 		food.Eaten = true
 		world.Foods = append(world.Foods[:closestFoodIdx], world.Foods[closestFoodIdx+1:]...)
@@ -162,14 +154,14 @@ func (p *Pet) MoveToFood() {
 func (p *Pet) Animate() {
 
 	if p.Moving {
-		// log.Println("Moving")
+
 		selectedTextures = p.Textures.MovingTextures
 	} else {
-		// log.Println("Idle")
+
 		selectedTextures = p.Textures.IdleTextures
 	}
 
-	p.FrameIdx = (p.FrameIdx + 1) % len(selectedTextures) // Advance to the next frame
+	p.FrameIdx = (p.FrameIdx + 1) % len(selectedTextures)
 
 }
 

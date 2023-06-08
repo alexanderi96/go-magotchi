@@ -7,21 +7,16 @@ import (
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
-const (
-	screenWidth       = 400
-	screenHeight      = 240
-	foodSpawnInterval = 10
-)
-
 var (
 	world           *World
 	animationTicker *time.Ticker
 	timeTicker      *time.Ticker
+	slidePosition   float32
 )
 
-func main() {
+func init() {
 	rl.InitWindow(screenWidth, screenHeight, "Go-Magotchi")
-	defer rl.CloseWindow()
+
 	world = &World{
 		Foods: []*Food{},
 		Dirts: []*Dirt{},
@@ -37,6 +32,7 @@ func main() {
 		},
 		WorldWidth:  screenWidth / 10,
 		WorldHeight: screenHeight / 10,
+		Paused:      false,
 	}
 
 	world.WorldGrid = make([][]Cell, world.WorldHeight)
@@ -69,6 +65,9 @@ func main() {
 	energyIcon = rl.LoadTexture("asset/hud/energy.png")
 	// https://www.flaticon.com/free-icon/time_3240587
 	ageIcon = rl.LoadTexture("asset/hud/age.png")
+}
+func main() {
+	defer rl.CloseWindow()
 
 	gameLoop()
 
@@ -98,11 +97,19 @@ func gameLoop() {
 
 	for !rl.WindowShouldClose() {
 
-		world.Update()
+		if rl.IsKeyPressed(rl.KeyP) {
+			slidePosition = float32(rl.GetScreenHeight())
+			world.Paused = !world.Paused
+		}
+
+		if !world.Paused {
+			world.Update()
+		}
 
 		world.Draw()
 
-	}
+		// Slide animation for the pause menu
 
-	rl.CloseWindow()
+		// Handle mouse input for the pause menu button
+	}
 }

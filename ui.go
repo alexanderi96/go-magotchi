@@ -6,26 +6,17 @@ import (
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
-// func DrawStats() {
-// 	// Draw the pet's stats in the stats area
-// 	statsY := int32(3) // Start drawing stats 10 pixels from the top
-// 	statsX := int32(3)
-// 	// Create the stats text
-// 	stats := fmt.Sprintf("H:%d H:%d, H:%d, E:%d, A:%d", world.Pet.Health, world.Pet.Hunger, world.Pet.Happiness, world.Pet.Energy, world.Pet.Age)
-
-// 	rl.DrawText(stats, statsX, statsY, 15, rl.Black)
-// }
+const (
+	screenWidth  = 400
+	screenHeight = 240
+)
 
 var (
-	healthIcon    rl.Texture2D
-	hungerIcon    rl.Texture2D
-	happinessIcon rl.Texture2D
-	energyIcon    rl.Texture2D
-	ageIcon       rl.Texture2D
+	healthIcon, hungerIcon, happinessIcon, energyIcon, ageIcon rl.Texture2D
 )
 
 func DrawStats() {
-	statsY := int32(3) // Start drawing stats 10 pixels from the top
+	statsY := int32(3)
 	statsX := int32(3)
 
 	rl.DrawTextureV(healthIcon, rl.NewVector2(float32(statsX), float32(statsY)), rl.White)
@@ -65,5 +56,5 @@ func DrawStats() {
 }
 
 func DrawFloor() {
-	rl.DrawRectangle(0, 0, screenWidth, screenHeight, rl.Green) // Game area
+	rl.DrawRectangle(0, 0, screenWidth, screenHeight, rl.Green)
 }

@@ -7,9 +7,10 @@ import (
 )
 
 const (
-	MaxFoodEnergy = 20
-	MinFoodEnergy = 10
-	foodSize      = 10
+	MaxFoodEnergy     = 20
+	MinFoodEnergy     = 10
+	foodSize          = 10
+	foodSpawnInterval = 10 * time.Second
 )
 
 var (
