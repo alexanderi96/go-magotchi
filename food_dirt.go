@@ -1,6 +1,7 @@
 package main
 
 import (
+	"math/rand"
 	"time"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
@@ -32,17 +33,26 @@ type Dirt struct {
 
 func (f *Food) Draw() {
 	if !f.Eaten {
-
 		textureWidth := float32(foodTexture.Width)
 		textureHeight := float32(foodTexture.Height)
-		scale := float32(f.Energy) / foodSize
-		x := f.X - (textureWidth*scale)/2
-		y := f.Y - (textureHeight*scale)/2
 
-		rl.DrawTextureEx(foodTexture, rl.Vector2{X: x, Y: y}, 0, scale, rl.White)
+		destRec := rl.NewRectangle(float32(f.X), float32(f.Y), float32(world.cellSize), float32(world.cellSize))
+
+		rl.DrawTexturePro(foodTexture, rl.NewRectangle(0, 0, textureWidth, textureHeight), destRec, rl.NewVector2(0, 0), 0, rl.White)
 	}
 }
 
 func (f *Dirt) Draw() {
 	// TODO
+}
+
+func NewFood() *Food {
+	return &Food{
+		X:         float32((rand.Intn(world.WorldWidth/world.cellSize-2) + 1) * world.cellSize),
+		Y:         float32(world.cellSize) + float32((rand.Intn(world.WorldHeight/world.cellSize-2)+1)*world.cellSize),
+		Eaten:     false,
+		Texture:   foodTexture,
+		SpawnTime: time.Now(),
+		Energy:    float32(rand.Intn(MaxFoodEnergy-MinFoodEnergy+1) + MinFoodEnergy),
+	}
 }

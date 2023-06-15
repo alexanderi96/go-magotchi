@@ -11,6 +11,7 @@ var (
 	world           *World
 	animationTicker *time.Ticker
 	timeTicker      *time.Ticker
+	movementTicker  *time.Ticker
 	slidePosition   float32
 )
 
@@ -18,26 +19,24 @@ func init() {
 	rl.InitWindow(screenWidth, screenHeight, "Go-Magotchi")
 
 	world = &World{
-		Foods: []*Food{},
-		Dirts: []*Dirt{},
-		Pet: &Pet{
-			X:         float32(screenWidth / 2),
-			Y:         float32(screenHeight / 2),
-			Health:    100,
-			Hunger:    50,
-			Happiness: 50,
-			Energy:    100,
-			Age:       0,
-			FrameIdx:  0,
-		},
-		WorldWidth:  screenWidth / 10,
-		WorldHeight: screenHeight / 10,
-		Paused:      false,
+		Foods:    []*Food{},
+		Dirts:    []*Dirt{},
+		cellSize: 40,
+		Paused:   false,
 	}
 
-	world.WorldGrid = make([][]Cell, world.WorldHeight)
-	for i := range world.WorldGrid {
-		world.WorldGrid[i] = make([]Cell, world.WorldWidth)
+	world.WorldHeight = screenHeight - world.cellSize
+	world.WorldWidth = screenWidth
+
+	world.Pet = &Pet{
+		X:         float32(world.WorldWidth / world.cellSize / 2 * world.cellSize),
+		Y:         float32(world.cellSize) + float32(world.WorldHeight/world.cellSize/2*world.cellSize),
+		Health:    100,
+		Hunger:    50,
+		Happiness: 50,
+		Energy:    100,
+		Age:       0,
+		FrameIdx:  0,
 	}
 
 	for i := 1; i <= 5; i++ {
@@ -82,6 +81,7 @@ func gameLoop() {
 	foodTicker = time.NewTicker(10 * time.Second)
 	animationTicker = time.NewTicker(150 * time.Millisecond)
 	timeTicker = time.NewTicker(time.Second)
+	movementTicker = time.NewTicker(time.Second)
 
 	for !rl.WindowShouldClose() {
 
@@ -95,10 +95,6 @@ func gameLoop() {
 		}
 
 		world.Draw()
-
-		// Slide animation for the pause menu
-
-		// Handle mouse input for the pause menu button
 	}
 }
 

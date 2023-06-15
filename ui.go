@@ -16,8 +16,8 @@ var (
 )
 
 func DrawStats() {
-	statsY := int32(3)
-	statsX := int32(3)
+	statsY := int32(10)
+	statsX := int32(10)
 
 	rl.DrawTextureV(healthIcon, rl.NewVector2(float32(statsX), float32(statsY)), rl.White)
 	statsX += healthIcon.Width + 5

@@ -1,6 +1,8 @@
 package main
 
 import (
+	"log"
+
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
@@ -11,9 +13,9 @@ type TextureSet struct {
 
 type Pet struct {
 	X, Y, Health, Hunger, Happiness, Energy float32
-	Textures                                    TextureSet
-	FlipSprite, Moving                          bool
-	FrameIdx, Age                                         int
+	Textures                                TextureSet
+	FlipSprite, Moving                      bool
+	FrameIdx, Age                           int
 }
 
 var selectedTextures []rl.Texture2D
@@ -62,33 +64,19 @@ func (p *Pet) MoveUserInput() {
 }
 
 func (p *Pet) Draw() {
-
 	if selectedTextures == nil {
 		selectedTextures = p.Textures.IdleTextures
-	}
-
-	scale := float32(1)
-	maxScale := float32(3)
-	maxAge := float32(60)
-
-	if p.Age <= int(maxAge) {
-
-		scale = 1 + ((maxScale - 1) * (float32(p.Age) / maxAge))
-	} else {
-		scale = maxScale
 	}
 
 	textureWidth := float32(selectedTextures[p.FrameIdx].Width)
 	textureHeight := float32(selectedTextures[p.FrameIdx].Height)
 
-	sourceRec := rl.NewRectangle(0, 0, textureWidth, textureHeight)
-	if p.FlipSprite {
-		sourceRec.Width *= -1
-	}
+	destRec := rl.NewRectangle(float32(p.X), float32(p.Y), float32(world.cellSize), float32(world.cellSize))
 
-	destRec := rl.NewRectangle(p.X-textureWidth*scale/2, p.Y-textureHeight*scale/2, textureWidth*scale, textureHeight*scale)
+	destRec.X += (float32(world.cellSize) - destRec.Width) / 2
+	destRec.Y += (float32(world.cellSize) - destRec.Height) / 2
 
-	rl.DrawTexturePro(selectedTextures[p.FrameIdx], sourceRec, destRec, rl.NewVector2(0, 0), 0, rl.White)
+	rl.DrawTexturePro(selectedTextures[p.FrameIdx], rl.NewRectangle(0, 0, textureWidth, textureHeight), destRec, rl.NewVector2(0, 0), 0, rl.White)
 }
 
 func (p *Pet) MoveToFood() {
@@ -121,21 +109,21 @@ func (p *Pet) MoveToFood() {
 
 	food := world.Foods[closestFoodIdx]
 	if p.X < food.X {
-		p.X++
-		p.Energy-=0.1
+		p.X += float32(world.cellSize)
+		p.Energy -= 0.1
 		p.FlipSprite = false
 	} else if p.X > food.X {
-		p.X--
-		p.Energy-=0.1
+		p.X -= float32(world.cellSize)
+		p.Energy -= 0.1
 		p.FlipSprite = true
 	}
 
 	if p.Y < food.Y {
-		p.Y++
-		p.Energy-=0.1
+		p.Y += float32(world.cellSize)
+		p.Energy -= 0.1
 	} else if p.Y > food.Y {
-		p.Y--
-		p.Energy-=0.1
+		p.Y -= float32(world.cellSize)
+		p.Energy -= 0.1
 	}
 
 	p.Moving = oldX != p.X || oldY != p.Y
@@ -143,7 +131,8 @@ func (p *Pet) MoveToFood() {
 		p.FrameIdx = 0
 	}
 
-	if rl.Vector2Distance(rl.NewVector2(p.X, p.Y), rl.NewVector2(food.X, food.Y)) < foodSize {
+	if rl.CheckCollisionRecs(rl.NewRectangle(p.X, p.Y, float32(world.cellSize), float32(world.cellSize)), rl.NewRectangle(food.X, food.Y, float32(world.cellSize), float32(world.cellSize))) {
+		log.Println(p.X, p.Y, food.X, food.Y)
 		food.Eaten = true
 		world.Foods = append(world.Foods[:closestFoodIdx], world.Foods[closestFoodIdx+1:]...)
 		p.Energy += food.Energy

@@ -1,19 +1,15 @@
 package main
 
 import (
-	"math/rand"
-	"time"
-
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
 type World struct {
-	Foods                   []*Food
-	Dirts                   []*Dirt
-	Pet                     *Pet
-	WorldWidth, WorldHeight int
-	WorldGrid               [][]Cell
-	Paused                  bool
+	Foods                             []*Food
+	Dirts                             []*Dirt
+	Pet                               *Pet
+	WorldWidth, WorldHeight, cellSize int
+	Paused                            bool
 }
 
 type Cell struct {
@@ -21,15 +17,7 @@ type Cell struct {
 }
 
 func (w *World) SpawnFood() {
-	newFood := Food{
-		X:         float32(int(0) + rand.Intn(int(screenWidth-foodSize))),
-		Y:         float32(rand.Intn(screenHeight - foodSize)),
-		Eaten:     false,
-		Texture:   foodTexture,
-		SpawnTime: time.Now(),
-		Energy:    float32(rand.Intn(MaxFoodEnergy-MinFoodEnergy+1) + MinFoodEnergy),
-	}
-	w.Foods = append(w.Foods, &newFood)
+	w.Foods = append(w.Foods, NewFood())
 }
 
 func (w *World) SpawnDirt() {
@@ -54,8 +42,10 @@ func (w *World) DrawPet() {
 
 func (w *World) Draw() {
 	rl.BeginDrawing()
+
 	rl.ClearBackground(rl.RayWhite)
 	DrawFloor()
+	//w.DrawCells()
 	w.DrawPet()
 	w.DrawFoods()
 	//w.DrawDirts()
@@ -64,6 +54,15 @@ func (w *World) Draw() {
 		w.DrawPauseMenu()
 	}
 	rl.EndDrawing()
+}
+
+func (w *World) DrawCells() {
+	for y := 0; y < screenHeight/w.cellSize; y++ {
+		for x := 0; x < screenWidth/w.cellSize; x++ {
+			rect := rl.NewRectangle(float32(x*w.cellSize), float32(y*w.cellSize), float32(w.cellSize), float32(w.cellSize))
+			rl.DrawRectangleLinesEx(rect, 1, rl.Black)
+		}
+	}
 }
 
 func (w *World) DrawPauseMenu() {
@@ -154,7 +153,8 @@ func (w *World) Update() {
 		world.Pet.Animate()
 	case <-timeTicker.C:
 		world.Pet.GetOlder()
+	case <-movementTicker.C:
+		world.Pet.MoveToFood()
 	default:
 	}
-	world.Pet.MoveToFood()
 }
