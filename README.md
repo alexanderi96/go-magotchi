@@ -1,6 +1,6 @@
 # go-magotchi
 
-![gameplay](https://github.com/alexanderi96/go-magotchi/blob/raylib/image.png?raw=true)
+![gameplay](https://github.com/alexanderi96/go-magotchi/blob/raylib/blob/image.png?raw=true)
 
 This is a pet simulator program written in Go. The program allows you to interact with a virtual pet, taking care of its needs and observing its behavior.
 
