@@ -34,16 +34,16 @@ type Dirt struct {
 
 func (f *Food) Draw() {
 	if f.X >= float32(world.WorldWidth) || f.X < float32(0) || f.Y > float32(world.WorldHeight) || f.Y < float32(0) {
-		log.Print(f.X >= float32(world.WorldWidth), f.X < float32(0+world.cellSize), f.Y >= float32(world.WorldHeight), f.Y < float32(0+world.cellSize))
 		log.Printf("food out of bounds: %f %f ", f.X, f.Y)
 		log.Printf("world bounds: %f %f ", float32(world.WorldWidth), float32(world.WorldHeight))
 	} else if !f.Eaten {
 		textureWidth := float32(foodTexture.Width)
 		textureHeight := float32(foodTexture.Height)
+		scale := float32(f.Energy) / foodSize
+		x := f.X - (textureWidth*scale)/2
+		y := f.Y - (textureHeight*scale)/2
 
-		destRec := rl.NewRectangle(float32(f.X), float32(f.Y), float32(world.cellSize), float32(world.cellSize))
-
-		rl.DrawTexturePro(foodTexture, rl.NewRectangle(0, 0, textureWidth, textureHeight), destRec, rl.NewVector2(0, 0), 0, rl.White)
+		rl.DrawTextureEx(foodTexture, rl.Vector2{X: x, Y: y}, 0, scale, rl.White)
 	}
 }
 

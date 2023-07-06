@@ -7,20 +7,17 @@ import (
 )
 
 type World struct {
-	Foods                             []*Food
-	Dirts                             []*Dirt
-	Pet                               *Pet
-	WorldWidth, WorldHeight, cellSize int
-	Paused                            bool
-}
-
-type Cell struct {
-	Obstacle bool
+	Foods       []*Food
+	Dirts       []*Dirt
+	Pet         *Pet
+	WorldWidth  int
+	WorldHeight int
+	Paused      bool
 }
 
 func (w *World) SpawnFood() {
-	X := float32(rand.Intn((world.WorldWidth / world.cellSize)) * world.cellSize)
-	Y := float32(rand.Intn((world.WorldHeight/world.cellSize))*world.cellSize + world.cellSize)
+	X := float32(rand.Intn(world.WorldWidth))
+	Y := float32(rand.Intn(world.WorldHeight))
 
 	for _, food := range w.Foods {
 		if food.X == X && food.Y == Y {
@@ -65,15 +62,6 @@ func (w *World) Draw() {
 		w.DrawPauseMenu()
 	}
 	rl.EndDrawing()
-}
-
-func (w *World) DrawCells() {
-	for y := 0; y < screenHeight/w.cellSize; y++ {
-		for x := 0; x < screenWidth/w.cellSize; x++ {
-			rect := rl.NewRectangle(float32(x*w.cellSize), float32(y*w.cellSize), float32(w.cellSize), float32(w.cellSize))
-			rl.DrawRectangleLinesEx(rect, 1, rl.Black)
-		}
-	}
 }
 
 func (w *World) DrawPauseMenu() {
@@ -144,7 +132,7 @@ func (w *World) DrawPauseMenu() {
 					FrameIdx:  0,
 				},
 				WorldWidth:  int(screenWidth) / 10,
-				WorldHeight: screenHeight / 10,
+				WorldHeight: int(screenHeight) / 10,
 				Paused:      false,
 			}
 		}

@@ -11,22 +11,21 @@ type TextureSet struct {
 }
 
 type Pet struct {
-	X          float32
-	Y          float32
-	Health     float32
-	Hunger     float32
-	Happiness  float32
-	Energy     float32
-	Textures   TextureSet
-	FlipSprite bool
-	Moving     bool
-	Sleeping   bool
-	Dead       bool
-	FrameIdx   int
-	Age        int
+	X                float32
+	Y                float32
+	Health           float32
+	Hunger           float32
+	Happiness        float32
+	Energy           float32
+	Textures         TextureSet
+	SelectedTextures []rl.Texture2D
+	FlipSprite       bool
+	Moving           bool
+	Sleeping         bool
+	Dead             bool
+	FrameIdx         int
+	Age              int
 }
-
-var selectedTextures []rl.Texture2D
 
 func (p *Pet) MoveUserInput() {
 	moveSpeed := float32(10)
@@ -72,33 +71,35 @@ func (p *Pet) MoveUserInput() {
 }
 
 func (p *Pet) Draw() {
-	if selectedTextures == nil {
-		selectedTextures = p.Textures.IdleTextures
+	if p.SelectedTextures == nil {
+		p.SelectedTextures = p.Textures.IdleTextures
 	}
 
-	textureWidth := float32(selectedTextures[p.FrameIdx].Width)
-	textureHeight := float32(selectedTextures[p.FrameIdx].Height)
+	scale := float32(1)
+	maxScale := float32(3)
+	maxAge := float32(60)
+
+	if p.Age <= int(maxAge) {
+		scale = 1 + ((maxScale - 1) * (float32(p.Age) / maxAge))
+	} else {
+		scale = maxScale
+	}
+
+	textureWidth := float32(p.SelectedTextures[p.FrameIdx].Width)
+	textureHeight := float32(p.SelectedTextures[p.FrameIdx].Height)
 
 	sourceRec := rl.NewRectangle(0, 0, textureWidth, textureHeight)
 	if p.FlipSprite {
 		sourceRec.Width *= -1
 	}
 
-	destRec := rl.NewRectangle(
-		float32(p.X),
-		float32(p.Y),
-		(22*float32(world.WorldWidth))/400,
-		(15*float32(world.WorldHeight))/240,
-	)
+	destRec := rl.NewRectangle(p.X-textureWidth*scale/2, p.Y-textureHeight*scale/2, textureWidth*scale, textureHeight*scale)
 
-	destRec.X += (float32(world.cellSize) - destRec.Width) / 2
-	destRec.Y += (float32(world.cellSize) - destRec.Height) / 2
-
-	rl.DrawTexturePro(selectedTextures[p.FrameIdx], sourceRec, destRec, rl.NewVector2(0, 0), 0, rl.White)
+	rl.DrawTexturePro(p.SelectedTextures[p.FrameIdx], sourceRec, destRec, rl.NewVector2(0, 0), 0, rl.White)
 }
 
 func (p *Pet) WantToMove() bool {
-	return !p.Dead && p.Hunger > 50 || p.Energy > 50
+	return !p.Dead && p.Hunger > 50 || p.Energy > 0
 }
 
 func (p *Pet) MoveToFood() {
@@ -130,23 +131,22 @@ func (p *Pet) MoveToFood() {
 	}
 
 	food := world.Foods[closestFoodIdx]
-	speed := (float32(world.cellSize) * (float32(world.WorldWidth) / 200)) * p.Energy
 	if p.X < food.X {
-		p.X += speed
-		p.Energy -= 1
+		p.X++
+		p.Energy -= 0.1
 		p.FlipSprite = false
 	} else if p.X > food.X {
-		p.X -= speed
-		p.Energy -= 1
+		p.X--
+		p.Energy -= 0.1
 		p.FlipSprite = true
 	}
 
 	if p.Y < food.Y {
-		p.Y += speed
-		p.Energy -= 1
+		p.Y++
+		p.Energy -= 0.1
 	} else if p.Y > food.Y {
-		p.Y -= speed
-		p.Energy -= 1
+		p.Y--
+		p.Energy -= 0.1
 	}
 
 	p.Moving = oldX != p.X || oldY != p.Y
@@ -154,7 +154,7 @@ func (p *Pet) MoveToFood() {
 		p.FrameIdx = 0
 	}
 
-	if rl.CheckCollisionRecs(rl.NewRectangle(p.X, p.Y, float32(world.cellSize), float32(world.cellSize)), rl.NewRectangle(food.X, food.Y, float32(world.cellSize), float32(world.cellSize))) {
+	if rl.CheckCollisionRecs(rl.NewRectangle(p.X, p.Y, float32(p.SelectedTextures[p.FrameIdx].Width), float32(p.SelectedTextures[p.FrameIdx].Height)), rl.NewRectangle(food.X, food.Y, float32(food.Texture.Width), float32(food.Texture.Height))) {
 		food.Eaten = true
 		world.Foods = append(world.Foods[:closestFoodIdx], world.Foods[closestFoodIdx+1:]...)
 		p.Energy += food.Energy
@@ -165,14 +165,14 @@ func (p *Pet) Animate() {
 
 	if p.Moving {
 
-		selectedTextures = p.Textures.MovingTextures
+		p.SelectedTextures = p.Textures.MovingTextures
 		// } else if p.Sleeping {
-		// 	selectedTextures = p.Textures.SleepingTextures
+		// 	p.SelectedTextures = p.Textures.SleepingTextures
 	} else {
-		selectedTextures = p.Textures.IdleTextures
+		p.SelectedTextures = p.Textures.IdleTextures
 	}
 
-	p.FrameIdx = (p.FrameIdx + 1) % len(selectedTextures)
+	p.FrameIdx = (p.FrameIdx + 1) % len(p.SelectedTextures)
 
 }
 
@@ -196,5 +196,4 @@ func (p *Pet) Update() {
 	if p.Energy == 0 || p.Health == 0 {
 		p.Dead = true
 	}
-
 }

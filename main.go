@@ -1,11 +1,17 @@
 package main
 
 import (
+	"embed"
 	"fmt"
+	"log"
+	"strconv"
 	"time"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
+
+//go:embed assets/*
+var assets embed.FS
 
 var (
 	world           *World
@@ -16,61 +22,107 @@ var (
 )
 
 func init() {
-	rl.InitWindow(screenWidth, screenHeight, "Go-Magotchi")
+	if len(scrHgt) > 0 && len(scrWdt) > 0 {
+		screenHeight, _ = strconv.Atoi(scrHgt)
+		screenWidth, _ = strconv.Atoi(scrWdt)
+	}
+
+	rl.InitWindow(int32(screenWidth), int32(screenHeight), "Go-Magotchi")
 
 	world = &World{
-		Foods:    []*Food{},
-		Dirts:    []*Dirt{},
-		cellSize: 40,
-		Paused:   false,
+		Foods: []*Food{},
+		Dirts: []*Dirt{},
+		Pet: &Pet{
+			X:         float32(screenWidth / 2),
+			Y:         float32(screenHeight / 2),
+			Health:    100,
+			Hunger:    50,
+			Happiness: 50,
+			Energy:    100,
+			Age:       0,
+			FrameIdx:  0,
+			Sleeping:  false,
+			Dead:      false,
+		},
+		WorldWidth:  int(screenWidth),
+		WorldHeight: int(screenHeight),
+		Paused:      false,
 	}
 
-	world.WorldHeight = screenHeight - world.cellSize
-	world.WorldWidth = screenWidth
-
-	world.Pet = &Pet{
-		X:         float32(world.WorldWidth / world.cellSize / 2 * world.cellSize),
-		Y:         float32(world.cellSize) + float32(world.WorldHeight/world.cellSize/2*world.cellSize),
-		Health:    100,
-		Hunger:    50,
-		Happiness: 50,
-		Energy:    100,
-		Age:       0,
-		FrameIdx:  0,
-		Sleeping:  false,
-		Dead:      false,
+	fox_still_frames, err := assets.ReadDir("assets/pet/fox/still")
+	if err != nil {
+		log.Fatal(err)
 	}
-
-	for i := 1; i <= 5; i++ {
+	for i := 1; i <= len(fox_still_frames); i++ {
 		//https://elthen.itch.io/2d-pixel-art-fox-sprites
-		texture := rl.LoadTexture(fmt.Sprintf("asset/pet/fox/still/%d.png", i))
+		textureData, err := assets.ReadFile(fmt.Sprintf("assets/pet/fox/still/%d.png", i))
+		if err != nil {
+			log.Fatal(err)
+		}
+		texture := rl.LoadTextureFromImage(rl.LoadImageFromMemory(".png", textureData, int32(len(textureData))))
 		world.Pet.Textures.IdleTextures = append(world.Pet.Textures.IdleTextures, texture)
 	}
 
-	for i := 1; i <= 8; i++ {
+	fox_walking_frames, err := assets.ReadDir("assets/pet/fox/walking")
+	if err != nil {
+		log.Fatal(err)
+	}
+	for i := 1; i <= len(fox_walking_frames); i++ {
 		//https://elthen.itch.io/2d-pixel-art-fox-sprites
-		texture := rl.LoadTexture(fmt.Sprintf("asset/pet/fox/walking/%d.png", i))
+		textureData, err := assets.ReadFile(fmt.Sprintf("assets/pet/fox/walking/%d.png", i))
+		if err != nil {
+			log.Fatal(err)
+		}
+		texture := rl.LoadTextureFromImage(rl.LoadImageFromMemory(".png", textureData, int32(len(textureData))))
 		world.Pet.Textures.MovingTextures = append(world.Pet.Textures.MovingTextures, texture)
 	}
 
 	// for i := 1; i <= 5; i++ {
-	// 	texture := rl.LoadTexture(fmt.Sprintf("asset/pet/fox/sleeping/%d.png", i))
+	// 	texture := rl.LoadTexture(fmt.Sprintf("assets/pet/fox/sleeping/%d.png", i))
 	// 	world.Pet.Textures.SleepingTextures = append(world.Pet.Textures.SleepingTextures, texture)
 	// }
 
 	// https://lucapixel.itch.io/free-food-pixel-art-45-icons
-	foodTexture = rl.LoadTexture("asset/food/food.png")
+	foodTextureData, err := assets.ReadFile("assets/food/food.png")
+	if err != nil {
+		log.Fatal(err)
+	}
+	foodTexture = rl.LoadTextureFromImage(rl.LoadImageFromMemory(".png", foodTextureData, int32(len(foodTextureData))))
 
 	// https://www.flaticon.com/free-icon/pharmacy_2695914
-	healthIcon = rl.LoadTexture("asset/hud/health.png")
+	healthIconData, err := assets.ReadFile("assets/hud/health.png")
+	if err != nil {
+		log.Fatal(err)
+	}
+	healthIcon = rl.LoadTextureFromImage(rl.LoadImageFromMemory(".png", healthIconData, int32(len(healthIconData))))
+
 	// https://www.flaticon.com/free-icon/hunger_4968451
-	hungerIcon = rl.LoadTexture("asset/hud/hunger.png")
+	hungerIconData, err := assets.ReadFile("assets/hud/hunger.png")
+	if err != nil {
+		log.Fatal(err)
+	}
+	hungerIcon = rl.LoadTextureFromImage(rl.LoadImageFromMemory(".png", hungerIconData, int32(len(hungerIconData))))
+
 	// https://www.flaticon.com/free-icon/happy_1023758
-	happinessIcon = rl.LoadTexture("asset/hud/happiness.png")
+	happinessIconData, err := assets.ReadFile("assets/hud/happiness.png")
+	if err != nil {
+		log.Fatal(err)
+	}
+	happinessIcon = rl.LoadTextureFromImage(rl.LoadImageFromMemory(".png", happinessIconData, int32(len(happinessIconData))))
+
 	// https://www.flaticon.com/free-icon/flash_2511629
-	energyIcon = rl.LoadTexture("asset/hud/energy.png")
+	energyIconData, err := assets.ReadFile("assets/hud/energy.png")
+	if err != nil {
+		log.Fatal(err)
+	}
+	energyIcon = rl.LoadTextureFromImage(rl.LoadImageFromMemory(".png", energyIconData, int32(len(energyIconData))))
+
 	// https://www.flaticon.com/free-icon/time_3240587
-	ageIcon = rl.LoadTexture("asset/hud/age.png")
+	ageIconData, err := assets.ReadFile("assets/hud/age.png")
+	if err != nil {
+		log.Fatal(err)
+	}
+	ageIcon = rl.LoadTextureFromImage(rl.LoadImageFromMemory(".png", ageIconData, int32(len(ageIconData))))
 }
 func main() {
 	defer rl.CloseWindow()
@@ -88,7 +140,7 @@ func gameLoop() {
 	foodTicker = time.NewTicker(10 * time.Second)
 	animationTicker = time.NewTicker(150 * time.Millisecond)
 	timeTicker = time.NewTicker(time.Second)
-	movementTicker = time.NewTicker(time.Second)
+	movementTicker = time.NewTicker(time.Millisecond)
 
 	for !rl.WindowShouldClose() {
 
