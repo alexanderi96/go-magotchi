@@ -1,0 +1,59 @@
+# File build
+*.o
+*.a
+*.test
+
+# File eseguibili
+go-magotchi
+bin/
+build/
+release/
+*.exe
+
+# File Go
+*.go~
+*.test.go
+*.test
+*.prof
+*.pprof
+
+# File binari
+*.bin
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.ico
+*.pdf
+*.zip
+*.tar.gz
+*.tar.bz2
+*.tar.xz
+*.rar
+*.gz
+*.bz2
+*.7z
+*.dmg
+*.jar
+
+# File di log
+log/
+*.log
+*.log.*
+*.log.[0-9]*
+
+# Cache VS Code
+.vscode/
+*.code-workspace
+
+# Cache IntelliJ IDEA
+.idea/
+
+# Cache GoLand
+.idea
+
+# Cache GoLand
+*.iml
+
+# Cache GoLand
+out/
