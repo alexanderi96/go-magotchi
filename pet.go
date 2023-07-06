@@ -1,20 +1,19 @@
 package main
 
 import (
-	"log"
-
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
 type TextureSet struct {
-	IdleTextures   []rl.Texture2D
-	MovingTextures []rl.Texture2D
+	IdleTextures     []rl.Texture2D
+	MovingTextures   []rl.Texture2D
+	SleepingTextures []rl.Texture2D
 }
 
 type Pet struct {
 	X, Y, Health, Hunger, Happiness, Energy float32
 	Textures                                TextureSet
-	FlipSprite, Moving                      bool
+	FlipSprite, Moving, Sleeping, Dead      bool
 	FrameIdx, Age                           int
 }
 
@@ -71,12 +70,21 @@ func (p *Pet) Draw() {
 	textureWidth := float32(selectedTextures[p.FrameIdx].Width)
 	textureHeight := float32(selectedTextures[p.FrameIdx].Height)
 
+	sourceRec := rl.NewRectangle(0, 0, textureWidth, textureHeight)
+	if p.FlipSprite {
+		sourceRec.Width *= -1
+	}
+
 	destRec := rl.NewRectangle(float32(p.X), float32(p.Y), float32(world.cellSize), float32(world.cellSize))
 
 	destRec.X += (float32(world.cellSize) - destRec.Width) / 2
 	destRec.Y += (float32(world.cellSize) - destRec.Height) / 2
 
-	rl.DrawTexturePro(selectedTextures[p.FrameIdx], rl.NewRectangle(0, 0, textureWidth, textureHeight), destRec, rl.NewVector2(0, 0), 0, rl.White)
+	rl.DrawTexturePro(selectedTextures[p.FrameIdx], sourceRec, destRec, rl.NewVector2(0, 0), 0, rl.White)
+}
+
+func (p *Pet) WantToMove() bool {
+	return !p.Dead && p.Hunger > 50 || p.Energy > 50
 }
 
 func (p *Pet) MoveToFood() {
@@ -110,20 +118,20 @@ func (p *Pet) MoveToFood() {
 	food := world.Foods[closestFoodIdx]
 	if p.X < food.X {
 		p.X += float32(world.cellSize)
-		p.Energy -= 0.1
+		p.Energy -= 1
 		p.FlipSprite = false
 	} else if p.X > food.X {
 		p.X -= float32(world.cellSize)
-		p.Energy -= 0.1
+		p.Energy -= 1
 		p.FlipSprite = true
 	}
 
 	if p.Y < food.Y {
 		p.Y += float32(world.cellSize)
-		p.Energy -= 0.1
+		p.Energy -= 1
 	} else if p.Y > food.Y {
 		p.Y -= float32(world.cellSize)
-		p.Energy -= 0.1
+		p.Energy -= 1
 	}
 
 	p.Moving = oldX != p.X || oldY != p.Y
@@ -132,7 +140,6 @@ func (p *Pet) MoveToFood() {
 	}
 
 	if rl.CheckCollisionRecs(rl.NewRectangle(p.X, p.Y, float32(world.cellSize), float32(world.cellSize)), rl.NewRectangle(food.X, food.Y, float32(world.cellSize), float32(world.cellSize))) {
-		log.Println(p.X, p.Y, food.X, food.Y)
 		food.Eaten = true
 		world.Foods = append(world.Foods[:closestFoodIdx], world.Foods[closestFoodIdx+1:]...)
 		p.Energy += food.Energy
@@ -144,8 +151,9 @@ func (p *Pet) Animate() {
 	if p.Moving {
 
 		selectedTextures = p.Textures.MovingTextures
+		// } else if p.Sleeping {
+		// 	selectedTextures = p.Textures.SleepingTextures
 	} else {
-
 		selectedTextures = p.Textures.IdleTextures
 	}
 
@@ -155,4 +163,23 @@ func (p *Pet) Animate() {
 
 func (p *Pet) GetOlder() {
 	p.Age++
+}
+
+func (p *Pet) Update() {
+	if p.Energy < 0 {
+		p.Energy = 0
+	} else if p.Energy > 100 {
+		p.Energy = 100
+	}
+
+	if p.Hunger < 0 {
+		p.Hunger = 0
+	} else if p.Hunger > 100 {
+		p.Hunger = 100
+	}
+
+	if p.Energy == 0 || p.Health == 0 {
+		p.Dead = true
+	}
+
 }

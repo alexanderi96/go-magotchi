@@ -1,6 +1,8 @@
 package main
 
 import (
+	"math/rand"
+
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
@@ -17,7 +19,16 @@ type Cell struct {
 }
 
 func (w *World) SpawnFood() {
-	w.Foods = append(w.Foods, NewFood())
+	X := float32(rand.Intn((world.WorldWidth / world.cellSize)) * world.cellSize)
+	Y := float32(rand.Intn((world.WorldHeight/world.cellSize))*world.cellSize + world.cellSize)
+
+	for _, food := range w.Foods {
+		if food.X == X && food.Y == Y {
+			return
+		}
+	}
+
+	w.Foods = append(w.Foods, NewFood(X, Y))
 }
 
 func (w *World) SpawnDirt() {
@@ -148,13 +159,23 @@ func (w *World) DrawPauseMenu() {
 func (w *World) Update() {
 	select {
 	case <-foodTicker.C:
-		world.SpawnFood()
+		if !world.Pet.Dead {
+			world.SpawnFood()
+		}
+
 	case <-animationTicker.C:
 		world.Pet.Animate()
+
 	case <-timeTicker.C:
-		world.Pet.GetOlder()
+		if !world.Pet.Dead {
+			world.Pet.GetOlder()
+		}
+
 	case <-movementTicker.C:
-		world.Pet.MoveToFood()
+		if world.Pet.WantToMove() {
+			world.Pet.MoveToFood()
+		}
 	default:
 	}
+	world.Pet.Update()
 }

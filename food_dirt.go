@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"math/rand"
 	"time"
 
@@ -32,7 +33,11 @@ type Dirt struct {
 }
 
 func (f *Food) Draw() {
-	if !f.Eaten {
+	if f.X >= float32(world.WorldWidth) || f.X < float32(0) || f.Y > float32(world.WorldHeight) || f.Y < float32(0) {
+		log.Print(f.X >= float32(world.WorldWidth), f.X < float32(0+world.cellSize), f.Y >= float32(world.WorldHeight), f.Y < float32(0+world.cellSize))
+		log.Printf("food out of bounds: %f %f ", f.X, f.Y)
+		log.Printf("world bounds: %f %f ", float32(world.WorldWidth), float32(world.WorldHeight))
+	} else if !f.Eaten {
 		textureWidth := float32(foodTexture.Width)
 		textureHeight := float32(foodTexture.Height)
 
@@ -46,10 +51,10 @@ func (f *Dirt) Draw() {
 	// TODO
 }
 
-func NewFood() *Food {
+func NewFood(x, y float32) *Food {
 	return &Food{
-		X:         float32((rand.Intn(world.WorldWidth/world.cellSize-2) + 1) * world.cellSize),
-		Y:         float32(world.cellSize) + float32((rand.Intn(world.WorldHeight/world.cellSize-2)+1)*world.cellSize),
+		X:         x,
+		Y:         y,
 		Eaten:     false,
 		Texture:   foodTexture,
 		SpawnTime: time.Now(),

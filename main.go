@@ -37,6 +37,8 @@ func init() {
 		Energy:    100,
 		Age:       0,
 		FrameIdx:  0,
+		Sleeping:  false,
+		Dead:      false,
 	}
 
 	for i := 1; i <= 5; i++ {
@@ -50,6 +52,11 @@ func init() {
 		texture := rl.LoadTexture(fmt.Sprintf("asset/pet/fox/walking/%d.png", i))
 		world.Pet.Textures.MovingTextures = append(world.Pet.Textures.MovingTextures, texture)
 	}
+
+	// for i := 1; i <= 5; i++ {
+	// 	texture := rl.LoadTexture(fmt.Sprintf("asset/pet/fox/sleeping/%d.png", i))
+	// 	world.Pet.Textures.SleepingTextures = append(world.Pet.Textures.SleepingTextures, texture)
+	// }
 
 	// https://lucapixel.itch.io/free-food-pixel-art-45-icons
 	foodTexture = rl.LoadTexture("asset/food/food.png")
@@ -103,6 +110,9 @@ func performCloseTasks() {
 		rl.UnloadTexture(texture)
 	}
 	for _, texture := range world.Pet.Textures.MovingTextures {
+		rl.UnloadTexture(texture)
+	}
+	for _, texture := range world.Pet.Textures.SleepingTextures {
 		rl.UnloadTexture(texture)
 	}
 	rl.UnloadTexture(foodTexture)
