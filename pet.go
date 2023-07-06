@@ -11,10 +11,19 @@ type TextureSet struct {
 }
 
 type Pet struct {
-	X, Y, Health, Hunger, Happiness, Energy float32
-	Textures                                TextureSet
-	FlipSprite, Moving, Sleeping, Dead      bool
-	FrameIdx, Age                           int
+	X          float32
+	Y          float32
+	Health     float32
+	Hunger     float32
+	Happiness  float32
+	Energy     float32
+	Textures   TextureSet
+	FlipSprite bool
+	Moving     bool
+	Sleeping   bool
+	Dead       bool
+	FrameIdx   int
+	Age        int
 }
 
 var selectedTextures []rl.Texture2D
@@ -75,7 +84,12 @@ func (p *Pet) Draw() {
 		sourceRec.Width *= -1
 	}
 
-	destRec := rl.NewRectangle(float32(p.X), float32(p.Y), float32(world.cellSize), float32(world.cellSize))
+	destRec := rl.NewRectangle(
+		float32(p.X),
+		float32(p.Y),
+		(22*float32(world.WorldWidth))/400,
+		(15*float32(world.WorldHeight))/240,
+	)
 
 	destRec.X += (float32(world.cellSize) - destRec.Width) / 2
 	destRec.Y += (float32(world.cellSize) - destRec.Height) / 2
@@ -116,21 +130,22 @@ func (p *Pet) MoveToFood() {
 	}
 
 	food := world.Foods[closestFoodIdx]
+	speed := (float32(world.cellSize) * (float32(world.WorldWidth) / 200)) * p.Energy
 	if p.X < food.X {
-		p.X += float32(world.cellSize)
+		p.X += speed
 		p.Energy -= 1
 		p.FlipSprite = false
 	} else if p.X > food.X {
-		p.X -= float32(world.cellSize)
+		p.X -= speed
 		p.Energy -= 1
 		p.FlipSprite = true
 	}
 
 	if p.Y < food.Y {
-		p.Y += float32(world.cellSize)
+		p.Y += speed
 		p.Energy -= 1
 	} else if p.Y > food.Y {
-		p.Y -= float32(world.cellSize)
+		p.Y -= speed
 		p.Energy -= 1
 	}
 

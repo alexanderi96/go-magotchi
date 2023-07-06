@@ -7,8 +7,8 @@ import (
 )
 
 const (
-	screenWidth  = 400
-	screenHeight = 240
+	screenWidth  = 1920
+	screenHeight = 1080
 )
 
 var (
@@ -56,5 +56,5 @@ func DrawStats() {
 }
 
 func DrawFloor() {
-	rl.DrawRectangle(0, 0, screenWidth, screenHeight, rl.Green)
+	rl.DrawRectangle(0, 0, screenWidth, screenHeight, rl.DarkGreen)
 }
