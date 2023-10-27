@@ -19,11 +19,10 @@ var (
 )
 
 type Food struct {
-	Texture   rl.Texture2D
-	X, Y      float32
-	Eaten     bool
-	SpawnTime time.Time
-	Energy    int
+	Texture      rl.Texture2D
+	X, Y, Energy float32
+	Eaten        bool
+	SpawnTime    time.Time
 }
 
 type Dirt struct {

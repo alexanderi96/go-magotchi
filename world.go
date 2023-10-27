@@ -27,7 +27,7 @@ func (w *World) SpawnFood() {
 		Eaten:     false,
 		Texture:   foodTexture,
 		SpawnTime: time.Now(),
-		Energy:    rand.Intn(MaxFoodEnergy-MinFoodEnergy+1) + MinFoodEnergy,
+		Energy:    float32(rand.Intn(MaxFoodEnergy-MinFoodEnergy+1) + MinFoodEnergy),
 	}
 	w.Foods = append(w.Foods, &newFood)
 }

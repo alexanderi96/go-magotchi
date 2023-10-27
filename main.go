@@ -71,19 +71,7 @@ func main() {
 
 	gameLoop()
 
-	for _, texture := range world.Pet.Textures.IdleTextures {
-		rl.UnloadTexture(texture)
-	}
-	for _, texture := range world.Pet.Textures.MovingTextures {
-		rl.UnloadTexture(texture)
-	}
-	rl.UnloadTexture(foodTexture)
-
-	rl.UnloadTexture(healthIcon)
-	rl.UnloadTexture(hungerIcon)
-	rl.UnloadTexture(happinessIcon)
-	rl.UnloadTexture(energyIcon)
-	rl.UnloadTexture(ageIcon)
+	performCloseTasks()
 
 	rl.CloseWindow()
 }
@@ -112,4 +100,20 @@ func gameLoop() {
 
 		// Handle mouse input for the pause menu button
 	}
+}
+
+func performCloseTasks() {
+	for _, texture := range world.Pet.Textures.IdleTextures {
+		rl.UnloadTexture(texture)
+	}
+	for _, texture := range world.Pet.Textures.MovingTextures {
+		rl.UnloadTexture(texture)
+	}
+	rl.UnloadTexture(foodTexture)
+
+	rl.UnloadTexture(healthIcon)
+	rl.UnloadTexture(hungerIcon)
+	rl.UnloadTexture(happinessIcon)
+	rl.UnloadTexture(energyIcon)
+	rl.UnloadTexture(ageIcon)
 }

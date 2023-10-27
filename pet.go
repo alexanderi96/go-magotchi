@@ -10,11 +10,10 @@ type TextureSet struct {
 }
 
 type Pet struct {
-	X, Y                                        float32
-	Health, Hunger, Happiness, Energy, FrameIdx int
+	X, Y, Health, Hunger, Happiness, Energy float32
 	Textures                                    TextureSet
 	FlipSprite, Moving                          bool
-	Age                                         int
+	FrameIdx, Age                                         int
 }
 
 var selectedTextures []rl.Texture2D
@@ -123,20 +122,20 @@ func (p *Pet) MoveToFood() {
 	food := world.Foods[closestFoodIdx]
 	if p.X < food.X {
 		p.X++
-		p.Energy--
+		p.Energy-=0.1
 		p.FlipSprite = false
 	} else if p.X > food.X {
 		p.X--
-		p.Energy--
+		p.Energy-=0.1
 		p.FlipSprite = true
 	}
 
 	if p.Y < food.Y {
 		p.Y++
-		p.Energy--
+		p.Energy-=0.1
 	} else if p.Y > food.Y {
 		p.Y--
-		p.Energy--
+		p.Energy-=0.1
 	}
 
 	p.Moving = oldX != p.X || oldY != p.Y
