@@ -6,18 +6,22 @@ import (
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
-const (
-	screenWidth  = 400
-	screenHeight = 240
-)
-
+// Beepberry screen dimensions: 400x240
 var (
-	healthIcon, hungerIcon, happinessIcon, energyIcon, ageIcon rl.Texture2D
+	scrWdt        string
+	scrHgt        string
+	screenWidth   int = 1920
+	screenHeight  int = 1080
+	healthIcon    rl.Texture2D
+	hungerIcon    rl.Texture2D
+	happinessIcon rl.Texture2D
+	energyIcon    rl.Texture2D
+	ageIcon       rl.Texture2D
 )
 
 func DrawStats() {
-	statsY := int32(3)
-	statsX := int32(3)
+	statsY := int32(10)
+	statsX := int32(10)
 
 	rl.DrawTextureV(healthIcon, rl.NewVector2(float32(statsX), float32(statsY)), rl.White)
 	statsX += healthIcon.Width + 5
@@ -56,5 +60,5 @@ func DrawStats() {
 }
 
 func DrawFloor() {
-	rl.DrawRectangle(0, 0, screenWidth, screenHeight, rl.Green)
+	rl.DrawRectangle(0, 0, int32(screenWidth), int32(screenHeight), rl.DarkGreen)
 }

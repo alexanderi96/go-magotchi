@@ -2,34 +2,30 @@ package main
 
 import (
 	"math/rand"
-	"time"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
 type World struct {
-	Foods                   []*Food
-	Dirts                   []*Dirt
-	Pet                     *Pet
-	WorldWidth, WorldHeight int
-	WorldGrid               [][]Cell
-	Paused                  bool
-}
-
-type Cell struct {
-	Obstacle bool
+	Foods       []*Food
+	Dirts       []*Dirt
+	Pet         *Pet
+	WorldWidth  int
+	WorldHeight int
+	Paused      bool
 }
 
 func (w *World) SpawnFood() {
-	newFood := Food{
-		X:         float32(int(0) + rand.Intn(int(screenWidth-foodSize))),
-		Y:         float32(rand.Intn(screenHeight - foodSize)),
-		Eaten:     false,
-		Texture:   foodTexture,
-		SpawnTime: time.Now(),
-		Energy:    float32(rand.Intn(MaxFoodEnergy-MinFoodEnergy+1) + MinFoodEnergy),
+	X := float32(rand.Intn(world.WorldWidth))
+	Y := float32(rand.Intn(world.WorldHeight))
+
+	for _, food := range w.Foods {
+		if food.X == X && food.Y == Y {
+			return
+		}
 	}
-	w.Foods = append(w.Foods, &newFood)
+
+	w.Foods = append(w.Foods, NewFood(X, Y))
 }
 
 func (w *World) SpawnDirt() {
@@ -54,8 +50,10 @@ func (w *World) DrawPet() {
 
 func (w *World) Draw() {
 	rl.BeginDrawing()
+
 	rl.ClearBackground(rl.RayWhite)
 	DrawFloor()
+	//w.DrawCells()
 	w.DrawPet()
 	w.DrawFoods()
 	//w.DrawDirts()
@@ -134,7 +132,7 @@ func (w *World) DrawPauseMenu() {
 					FrameIdx:  0,
 				},
 				WorldWidth:  int(screenWidth) / 10,
-				WorldHeight: screenHeight / 10,
+				WorldHeight: int(screenHeight) / 10,
 				Paused:      false,
 			}
 		}
@@ -149,12 +147,23 @@ func (w *World) DrawPauseMenu() {
 func (w *World) Update() {
 	select {
 	case <-foodTicker.C:
-		world.SpawnFood()
+		if !world.Pet.Dead {
+			world.SpawnFood()
+		}
+
 	case <-animationTicker.C:
 		world.Pet.Animate()
+
 	case <-timeTicker.C:
-		world.Pet.GetOlder()
+		if !world.Pet.Dead {
+			world.Pet.GetOlder()
+		}
+
+	case <-movementTicker.C:
+		if world.Pet.WantToMove() {
+			world.Pet.MoveToFood()
+		}
 	default:
 	}
-	world.Pet.MoveToFood()
+	world.Pet.Update()
 }

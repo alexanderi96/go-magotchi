@@ -1,15 +1,17 @@
 # go-magotchi
 
+![gameplay](https://github.com/alexanderi96/go-magotchi/blob/raylib/blob/image.png?raw=true)
+
 This is a pet simulator program written in Go. The program allows you to interact with a virtual pet, taking care of its needs and observing its behavior.
 
 ## Features
 
-- [ ] Monitor the pet's energy and hunger levels.
+- [x] Monitor the pet's energy and hunger levels.
 - [x] Feed the pet and watch it consume food.
 - [ ] Clean up the pet's dirt.
 - [ ] Observe the pet's age and stage of development.
-- [x] Interact with the pet using keyboard controls.
-- [ ] Pause, restart, save, and load the game.
+- [ ] Interact with the pet using keyboard controls.
+- [x] Pause, restart, save, and load the game.
 - [ ] Receive a game summary when the pet dies.
 - [ ] Multiplayer.
 - [ ] Minigames.

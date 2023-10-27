@@ -1,6 +1,8 @@
 package main
 
 import (
+	"log"
+	"math/rand"
 	"time"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
@@ -31,8 +33,10 @@ type Dirt struct {
 }
 
 func (f *Food) Draw() {
-	if !f.Eaten {
-
+	if f.X >= float32(world.WorldWidth) || f.X < float32(0) || f.Y > float32(world.WorldHeight) || f.Y < float32(0) {
+		log.Printf("food out of bounds: %f %f ", f.X, f.Y)
+		log.Printf("world bounds: %f %f ", float32(world.WorldWidth), float32(world.WorldHeight))
+	} else if !f.Eaten {
 		textureWidth := float32(foodTexture.Width)
 		textureHeight := float32(foodTexture.Height)
 		scale := float32(f.Energy) / foodSize
@@ -45,4 +49,15 @@ func (f *Food) Draw() {
 
 func (f *Dirt) Draw() {
 	// TODO
+}
+
+func NewFood(x, y float32) *Food {
+	return &Food{
+		X:         x,
+		Y:         y,
+		Eaten:     false,
+		Texture:   foodTexture,
+		SpawnTime: time.Now(),
+		Energy:    float32(rand.Intn(MaxFoodEnergy-MinFoodEnergy+1) + MinFoodEnergy),
+	}
 }
