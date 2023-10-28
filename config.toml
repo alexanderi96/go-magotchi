@@ -1,0 +1,9 @@
+
+  full_screen = false
+  window_width = 1280
+  window_height = 720
+  target_fps = 999
+  is_resizable = true
+  scale_factor = 1 # 1 pixel = 1 cm
+  should_be_profiled = true
+  

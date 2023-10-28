@@ -1,14 +1,8 @@
-package main
+package engine
 
 import (
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
-
-type TextureSet struct {
-	IdleTextures     []rl.Texture2D
-	MovingTextures   []rl.Texture2D
-	SleepingTextures []rl.Texture2D
-}
 
 type Pet struct {
 	X                float32
@@ -17,8 +11,7 @@ type Pet struct {
 	Hunger           float32
 	Happiness        float32
 	Energy           float32
-	Textures         TextureSet
-	SelectedTextures []rl.Texture2D
+	SelectedTextures []*Texture
 	FlipSprite       bool
 	Moving           bool
 	Sleeping         bool
@@ -27,7 +20,7 @@ type Pet struct {
 	Age              int
 }
 
-func (p *Pet) MoveUserInput() {
+func (p *Pet) MoveUserInput(x, y float32) {
 	moveSpeed := float32(10)
 
 	oldX := p.X
@@ -36,7 +29,7 @@ func (p *Pet) MoveUserInput() {
 
 	if rl.IsKeyDown(rl.KeyRight) {
 		p.X += moveSpeed
-		if p.X > float32(world.WorldWidth) {
+		if p.X > float32(x) {
 			p.X = float32(0)
 		}
 		p.FlipSprite = false
@@ -45,7 +38,7 @@ func (p *Pet) MoveUserInput() {
 	if rl.IsKeyDown(rl.KeyLeft) {
 		p.X -= moveSpeed
 		if p.X < float32(0) {
-			p.X = float32(world.WorldWidth)
+			p.X = float32(x)
 		}
 		p.FlipSprite = true
 	}
@@ -53,13 +46,13 @@ func (p *Pet) MoveUserInput() {
 	if rl.IsKeyDown(rl.KeyUp) {
 		p.Y -= moveSpeed
 		if p.Y < 0 {
-			p.Y = float32(world.WorldHeight)
+			p.Y = float32(y)
 		}
 	}
 
 	if rl.IsKeyDown(rl.KeyDown) {
 		p.Y += moveSpeed
-		if p.Y > float32(world.WorldHeight) {
+		if p.Y > float32(y) {
 			p.Y = 0
 		}
 	}
@@ -70,44 +63,16 @@ func (p *Pet) MoveUserInput() {
 	}
 }
 
-func (p *Pet) Draw() {
-	if p.SelectedTextures == nil {
-		p.SelectedTextures = p.Textures.IdleTextures
-	}
-
-	scale := float32(1)
-	maxScale := float32(3)
-	maxAge := float32(60)
-
-	if p.Age <= int(maxAge) {
-		scale = 1 + ((maxScale - 1) * (float32(p.Age) / maxAge))
-	} else {
-		scale = maxScale
-	}
-
-	textureWidth := float32(p.SelectedTextures[p.FrameIdx].Width)
-	textureHeight := float32(p.SelectedTextures[p.FrameIdx].Height)
-
-	sourceRec := rl.NewRectangle(0, 0, textureWidth, textureHeight)
-	if p.FlipSprite {
-		sourceRec.Width *= -1
-	}
-
-	destRec := rl.NewRectangle(p.X-textureWidth*scale/2, p.Y-textureHeight*scale/2, textureWidth*scale, textureHeight*scale)
-
-	rl.DrawTexturePro(p.SelectedTextures[p.FrameIdx], sourceRec, destRec, rl.NewVector2(0, 0), 0, rl.White)
-}
-
 func (p *Pet) WantToMove() bool {
 	return !p.Dead && p.Hunger > 50 || p.Energy > 0
 }
 
-func (p *Pet) MoveToFood() {
+func (p *Pet) MoveToFood(x, y float32, f []*Food) {
 	oldX := p.X
 	oldY := p.Y
 	oldState := p.Moving
 
-	if len(world.Foods) == 0 {
+	if len(f) == 0 {
 		p.Moving = false
 		if p.Moving != oldState {
 			p.FrameIdx = 0
@@ -116,9 +81,9 @@ func (p *Pet) MoveToFood() {
 	}
 
 	closestFoodIdx := 0
-	closestDistance := float32(world.WorldWidth + world.WorldHeight)
+	closestDistance := float32(x + y)
 
-	for idx, food := range world.Foods {
+	for idx, food := range f {
 		if food.Eaten {
 			continue
 		}
@@ -130,7 +95,7 @@ func (p *Pet) MoveToFood() {
 		}
 	}
 
-	food := world.Foods[closestFoodIdx]
+	food := f[closestFoodIdx]
 	if p.X < food.X {
 		p.X++
 		p.Energy -= 0.1
@@ -154,22 +119,22 @@ func (p *Pet) MoveToFood() {
 		p.FrameIdx = 0
 	}
 
-	if rl.CheckCollisionRecs(rl.NewRectangle(p.X, p.Y, float32(p.SelectedTextures[p.FrameIdx].Width), float32(p.SelectedTextures[p.FrameIdx].Height)), rl.NewRectangle(food.X, food.Y, float32(food.Texture.Width), float32(food.Texture.Height))) {
+	if rl.CheckCollisionRecs(rl.NewRectangle(p.X, p.Y, float32(p.SelectedTextures[p.FrameIdx].Data.Width), float32(p.SelectedTextures[p.FrameIdx].Data.Height)), rl.NewRectangle(food.X, food.Y, float32(food.Texture.Data.Width), float32(food.Texture.Data.Height))) {
 		food.Eaten = true
-		world.Foods = append(world.Foods[:closestFoodIdx], world.Foods[closestFoodIdx+1:]...)
+		f = append(f[:closestFoodIdx], f[closestFoodIdx+1:]...)
 		p.Energy += food.Energy
 	}
 }
 
-func (p *Pet) Animate() {
+func (p *Pet) Animate(t *TextureSet) {
 
 	if p.Moving {
 
-		p.SelectedTextures = p.Textures.MovingTextures
+		p.SelectedTextures = append(t.MovingTextures)
 		// } else if p.Sleeping {
-		// 	p.SelectedTextures = p.Textures.SleepingTextures
+		// 	p.SelectedTextures = t.SleepingTextures
 	} else {
-		p.SelectedTextures = p.Textures.IdleTextures
+		p.SelectedTextures = t.IdleTextures
 	}
 
 	p.FrameIdx = (p.FrameIdx + 1) % len(p.SelectedTextures)

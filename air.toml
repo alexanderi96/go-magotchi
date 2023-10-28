@@ -1,0 +1,15 @@
+# .air.toml
+[build]
+  cmd = "go build -o ./tmp/main ."
+  bin = "./tmp/main"
+  delay = 2000ms
+  exit_on_error = true
+
+[watch]
+  pattern = ".go$"
+  dir = "./"
+  exclude_dir = "./tmp"
+
+[log]
+  level = "debug"
+

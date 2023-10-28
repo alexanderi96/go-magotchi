@@ -1,4 +1,4 @@
-package main
+package engine
 
 import (
 	"log"
@@ -15,35 +15,30 @@ const (
 	foodSpawnInterval = 10 * time.Second
 )
 
-var (
-	foodTicker  *time.Ticker
-	foodTexture rl.Texture2D
-)
-
 type Food struct {
-	Texture      rl.Texture2D
+	Texture      *Texture
 	X, Y, Energy float32
 	Eaten        bool
 	SpawnTime    time.Time
 }
 
 type Dirt struct {
-	Texture rl.Texture2D
+	Texture *Texture
 	X, Y    float32
 }
 
-func (f *Food) Draw() {
-	if f.X >= float32(world.WorldWidth) || f.X < float32(0) || f.Y > float32(world.WorldHeight) || f.Y < float32(0) {
+func (f *Food) Draw(x, y int32) {
+	if f.X >= float32(x) || f.X < float32(0) || f.Y > float32(y) || f.Y < float32(0) {
 		log.Printf("food out of bounds: %f %f ", f.X, f.Y)
-		log.Printf("world bounds: %f %f ", float32(world.WorldWidth), float32(world.WorldHeight))
+		log.Printf("viewport bounds: %f %f ", float32(x), float32(y))
 	} else if !f.Eaten {
-		textureWidth := float32(foodTexture.Width)
-		textureHeight := float32(foodTexture.Height)
+		textureWidth := float32(f.Texture.Data.Width)
+		textureHeight := float32(f.Texture.Data.Height)
 		scale := float32(f.Energy) / foodSize
 		x := f.X - (textureWidth*scale)/2
 		y := f.Y - (textureHeight*scale)/2
 
-		rl.DrawTextureEx(foodTexture, rl.Vector2{X: x, Y: y}, 0, scale, rl.White)
+		rl.DrawTextureEx(f.Texture.Data, rl.Vector2{X: x, Y: y}, 0, scale, rl.White)
 	}
 }
 
@@ -51,7 +46,7 @@ func (f *Dirt) Draw() {
 	// TODO
 }
 
-func NewFood(x, y float32) *Food {
+func NewFood(x, y float32, foodTexture *Texture) *Food {
 	return &Food{
 		X:         x,
 		Y:         y,
