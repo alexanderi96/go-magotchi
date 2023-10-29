@@ -5,19 +5,18 @@ import (
 )
 
 type Pet struct {
-	X                float32
-	Y                float32
-	Health           float32
-	Hunger           float32
-	Happiness        float32
-	Energy           float32
-	SelectedTextures []*Texture
-	FlipSprite       bool
-	Moving           bool
-	Sleeping         bool
-	Dead             bool
-	FrameIdx         int
-	Age              int
+	X          float32
+	Y          float32
+	Health     float32
+	Hunger     float32
+	Happiness  float32
+	Energy     float32
+	FlipSprite bool
+	Moving     bool
+	Sleeping   bool
+	Dead       bool
+	Age        int
+	FrameIdx   int
 }
 
 func (p *Pet) MoveUserInput(x, y float32) {
@@ -67,7 +66,7 @@ func (p *Pet) WantToMove() bool {
 	return !p.Dead && p.Hunger > 50 || p.Energy > 0
 }
 
-func (p *Pet) MoveToFood(x, y float32, f []*Food) {
+func (p *Pet) MoveToFood(x, y int32, f []*Food) {
 	oldX := p.X
 	oldY := p.Y
 	oldState := p.Moving
@@ -80,20 +79,7 @@ func (p *Pet) MoveToFood(x, y float32, f []*Food) {
 		return
 	}
 
-	closestFoodIdx := 0
-	closestDistance := float32(x + y)
-
-	for idx, food := range f {
-		if food.Eaten {
-			continue
-		}
-
-		distance := rl.Vector2Distance(rl.NewVector2(p.X, p.Y), rl.NewVector2(food.X, food.Y))
-		if distance < closestDistance {
-			closestFoodIdx = idx
-			closestDistance = distance
-		}
-	}
+	closestFoodIdx := p.GetClosestFoodDistance(x, y, f)
 
 	food := f[closestFoodIdx]
 	if p.X < food.X {
@@ -118,31 +104,33 @@ func (p *Pet) MoveToFood(x, y float32, f []*Food) {
 	if p.Moving != oldState {
 		p.FrameIdx = 0
 	}
-
-	if rl.CheckCollisionRecs(rl.NewRectangle(p.X, p.Y, float32(p.SelectedTextures[p.FrameIdx].Data.Width), float32(p.SelectedTextures[p.FrameIdx].Data.Height)), rl.NewRectangle(food.X, food.Y, float32(food.Texture.Data.Width), float32(food.Texture.Data.Height))) {
-		food.Eaten = true
-		f = append(f[:closestFoodIdx], f[closestFoodIdx+1:]...)
-		p.Energy += food.Energy
-	}
 }
 
-func (p *Pet) Animate(t *TextureSet) {
+func (p *Pet) GetClosestFoodDistance(x, y int32, f []*Food) int {
+	closestFoodIdx := 0
+	closestDistance := float32(x + y)
 
-	if p.Moving {
+	for idx, food := range f {
+		if food.Eaten {
+			continue
+		}
 
-		p.SelectedTextures = append(t.MovingTextures)
-		// } else if p.Sleeping {
-		// 	p.SelectedTextures = t.SleepingTextures
-	} else {
-		p.SelectedTextures = t.IdleTextures
+		distance := rl.Vector2Distance(rl.NewVector2(p.X, p.Y), rl.NewVector2(food.X, food.Y))
+		if distance < closestDistance {
+			closestFoodIdx = idx
+			closestDistance = distance
+		}
 	}
 
-	p.FrameIdx = (p.FrameIdx + 1) % len(p.SelectedTextures)
-
+	return closestFoodIdx
 }
 
 func (p *Pet) GetOlder() {
 	p.Age++
+}
+
+func (p *Pet) Eat(f *Food) {
+	p.Sleeping = true
 }
 
 func (p *Pet) Update() {

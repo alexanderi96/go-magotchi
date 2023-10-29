@@ -11,18 +11,23 @@ import (
 )
 
 var (
-	game *engine.World
+	game       *engine.World
+	guiContext *gui.GuiContext
 )
 
 func init() {
-
-	game, err := engine.NewGame()
+	var err error
+	game, err = engine.NewGame()
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	if game.Config.IsResizable {
 		rl.SetConfigFlags(rl.FlagWindowResizable)
+	}
+
+	if guiContext, err = gui.NewGuiContext(); err != nil {
+		log.Fatal(err)
 	}
 
 	rl.SetTargetFPS(game.Config.TargetFPS)
@@ -51,7 +56,7 @@ func main() {
 			game.Update()
 		}
 
-		gui.Draw(game)
+		guiContext.Draw(game)
 	}
 
 	performCloseTasks()
@@ -60,5 +65,5 @@ func main() {
 }
 
 func performCloseTasks() {
-	gui.UnloadTextures(game)
+	guiContext.UnloadTextures(game)
 }
